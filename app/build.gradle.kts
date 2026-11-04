@@ -16,20 +16,24 @@ android {
         versionName = "1.4"
     }
 
-    // Clave de depuración fija (pública, solo para pruebas) para que cada APK
-    // compilado en GitHub se pueda instalar encima del anterior sin desinstalar.
+    // Firma de publicación: la clave privada NO está en el repositorio. En GitHub Actions
+    // se reconstruye desde los secretos SIGNING_* (ver .github/workflows/build.yml).
+    val releaseKeystore = System.getenv("SIGNING_KEYSTORE_FILE")
     signingConfigs {
-        getByName("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (releaseKeystore != null) signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

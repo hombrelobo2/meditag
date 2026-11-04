@@ -61,6 +61,12 @@ Cada subida a `main` compila el APK automáticamente (pestaña **Actions**) y lo
 **Releases → "MediTag (última compilación)"**. Ábrelo desde el navegador del móvil,
 descarga `MediTag.apk` y permite "instalar apps de origen desconocido" cuando lo pida.
 
+## Firma del APK
+Las versiones publicadas se firman en GitHub Actions con una clave privada guardada en los
+secretos del repositorio (`SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`,
+`SIGNING_KEY_PASSWORD`). La clave no está en el código. Para compilar en local, Android Studio usa
+su clave de depuración habitual.
+
 ## Licencia
 MediTag es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la
 [GNU General Public License v3.0](LICENSE) publicada por la Free Software Foundation.

@@ -21,11 +21,23 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Compilar APK de prueba
+      - name: Compilar APK firmado
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "::error::Faltan los secretos SIGNING_* en Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          export SIGNING_KEYSTORE_FILE="$RUNNER_TEMP/release.jks"
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$SIGNING_KEYSTORE_FILE"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk MediTag.apk
+          ./gradlew --no-daemon assembleRelease
+          rm -f "$SIGNING_KEYSTORE_FILE"
+          cp app/build/outputs/apk/release/app-release.apk MediTag.apk
 
       - uses: actions/upload-artifact@v4
         with:
@@ -39,4 +51,4 @@ jobs:
           gh release delete ultima --yes --cleanup-tag || true
           gh release create ultima MediTag.apk \
             --title "MediTag (última compilación)" \
-            --notes "APK de prueba compilado desde ${GITHUB_SHA::7}. Descárgalo en el móvil e instálalo."
+            --notes "APK firmado, compilado desde ${GITHUB_SHA::7}. Descárgalo en el móvil e instálalo."
