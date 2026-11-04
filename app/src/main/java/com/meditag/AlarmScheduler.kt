@@ -36,8 +36,15 @@ object AlarmScheduler {
         val startAt = day.atTime(med.start)
         var alarmAt = day.atTime(med.end)
 
-        // Fuera de plazo y sin tomar (p.ej. tras reiniciar el móvil): suena ya.
-        if (!alarmAt.isAfter(now)) alarmAt = now.plusSeconds(3)
+        if (!alarmAt.isAfter(now)) {
+            alarmAt = if (med.repeatPending()) {
+                // Repetición programada tras una alarma sin respuesta
+                LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(med.nextRepeatAt), ZoneId.systemDefault())
+            } else {
+                // Fuera de plazo y sin tomar (p.ej. tras reiniciar el móvil): suena ya.
+                now.plusSeconds(3)
+            }
+        }
 
         if (startAt.isAfter(now)) setExact(ctx, startAt, pi(ctx, reqRemind(med.id), ACTION_REMIND, med.id))
         setAlarmClock(ctx, alarmAt, pi(ctx, reqAlarm(med.id), ACTION_ALARM, med.id))

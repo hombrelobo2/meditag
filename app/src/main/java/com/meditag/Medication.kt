@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-enum class DoseStatus { PENDING, DUE, OVERDUE, TAKEN, SKIPPED, NOT_TODAY, ON_DEMAND, DISABLED }
+enum class DoseStatus { PENDING, DUE, OVERDUE, TAKEN, SKIPPED, MISSED, NOT_TODAY, ON_DEMAND, DISABLED }
 
 /** Pauta de toma. */
 enum class Mode { DAILY, WEEKDAYS, INTERVAL, DATES, ON_DEMAND }
@@ -46,6 +46,10 @@ data class Medication(
     val skippedDate: String? = null,        // yyyy-MM-dd del último día cancelado
     val countDate: String? = null,          // a demanda: día del contador
     val count: Int = 0,                     // a demanda: tomas ese día
+    val missedDate: String? = null,         // día en que la alarma acabó sin respuesta
+    val repeatDate: String? = null,         // día al que se refieren las repeticiones
+    val repeatsDone: Int = 0,               // repeticiones de alarma ya hechas ese día
+    val nextRepeatAt: Long = 0L,            // epoch millis de la próxima repetición
 ) {
     val start: LocalTime get() = LocalTime.of(startMin / 60, startMin % 60)
     val end: LocalTime get() = LocalTime.of(endMin / 60, endMin % 60)
@@ -69,7 +73,17 @@ data class Medication(
         generateSequence(from) { it.plusDays(1) }.take(400).firstOrNull { isScheduledOn(it) }
 
     fun isDoneOn(date: LocalDate): Boolean =
-        takenDate == date.toString() || skippedDate == date.toString()
+        takenDate == date.toString() || skippedDate == date.toString() || missedDate == date.toString()
+
+    /** Hay una repetición de alarma programada para más tarde hoy. */
+    fun repeatPending(now: Long = System.currentTimeMillis()): Boolean =
+        repeatDate == LocalDate.now().toString() && nextRepeatAt > now
+
+    fun repeatsToday(): Int = if (repeatDate == LocalDate.now().toString()) repeatsDone else 0
+
+    fun nextRepeatText(): String =
+        Instant.ofEpochMilli(nextRepeatAt).atZone(ZoneId.systemDefault()).toLocalTime()
+            .format(DateTimeFormatter.ofPattern("HH:mm"))
 
     fun status(now: LocalDateTime = LocalDateTime.now()): DoseStatus {
         val todayDate = now.toLocalDate()
@@ -80,6 +94,7 @@ data class Medication(
             mode == Mode.ON_DEMAND -> DoseStatus.ON_DEMAND
             takenDate == today -> DoseStatus.TAKEN
             skippedDate == today -> DoseStatus.SKIPPED
+            missedDate == today -> DoseStatus.MISSED
             !isScheduledOn(todayDate) -> DoseStatus.NOT_TODAY
             t < start -> DoseStatus.PENDING
             t < end -> DoseStatus.DUE
@@ -120,6 +135,8 @@ data class Medication(
         .put("takenDate", takenDate ?: "").put("takenAt", takenAt)
         .put("skippedDate", skippedDate ?: "")
         .put("countDate", countDate ?: "").put("count", count)
+        .put("missedDate", missedDate ?: "").put("repeatDate", repeatDate ?: "")
+        .put("repeatsDone", repeatsDone).put("nextRepeatAt", nextRepeatAt)
 
     companion object {
         fun fromJson(o: JSONObject): Medication {
@@ -142,6 +159,10 @@ data class Medication(
                 skippedDate = o.optString("skippedDate").ifBlank { null },
                 countDate = o.optString("countDate").ifBlank { null },
                 count = o.optInt("count", 0),
+                missedDate = o.optString("missedDate").ifBlank { null },
+                repeatDate = o.optString("repeatDate").ifBlank { null },
+                repeatsDone = o.optInt("repeatsDone", 0),
+                nextRepeatAt = o.optLong("nextRepeatAt", 0L),
             )
         }
     }
@@ -251,5 +272,33 @@ object AlarmSound {
             .putString(KEY_URI, uri?.toString() ?: "")
             .putString(KEY_NAME, name ?: "")
             .apply()
+    }
+}
+
+/** Duración y repeticiones de la alarma (minutos; 0 = sin límite / sin repetir). */
+object AlarmSettings {
+    private const val KEY_MAX = "alarm_max_min"
+    private const val KEY_EVERY = "alarm_repeat_every"
+    private const val KEY_TIMES = "alarm_repeat_times"
+
+    fun maxMinutes(ctx: Context) = MedRepo.prefs(ctx).getInt(KEY_MAX, 30)
+    fun repeatEvery(ctx: Context) = MedRepo.prefs(ctx).getInt(KEY_EVERY, 30)
+    fun repeatTimes(ctx: Context) = MedRepo.prefs(ctx).getInt(KEY_TIMES, 2)
+
+    fun set(ctx: Context, maxMin: Int, every: Int, times: Int) {
+        MedRepo.prefs(ctx).edit()
+            .putInt(KEY_MAX, maxMin.coerceIn(0, 1440))
+            .putInt(KEY_EVERY, every.coerceIn(0, 1440))
+            .putInt(KEY_TIMES, times.coerceIn(0, 50))
+            .apply()
+    }
+
+    fun describe(ctx: Context): String {
+        val max = maxMinutes(ctx)
+        if (max == 0) return "Suena hasta que escanees la pegatina o canceles la toma"
+        val every = repeatEvery(ctx); val times = repeatTimes(ctx)
+        val rep = if (every == 0 || times == 0) "y no se repite"
+        else "y vuelve a sonar cada $every min ($times ${if (times == 1) "vez" else "veces"} más)"
+        return "Suena $max min $rep"
     }
 }

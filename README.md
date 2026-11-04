@@ -8,13 +8,19 @@ etiqueta, no hace falta grabar nada en ella.
 - **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y **rango horario** (desde / hasta).
 - **Pautas**: cada día · días de la semana (L–D) · cada N días (días alternos = 2) · fechas concretas
   marcadas en un calendario · **a demanda** (sin horario ni alarma: cada escaneo registra una toma y se cuentan las del día).
-- **Sonido de la alarma** (botón 🔔 Sonido): pitido estridente por defecto, un tono de alarma del móvil o cualquier archivo de audio.
+- **Ajustes de la alarma** (botón 🔔 Alarma): sonido: pitido estridente por defecto, un tono de alarma del móvil o cualquier archivo de audio.
 - **Registrar toma**: acercar la pegatina con la app abierta *o cerrada* (Android abre la app al detectarla).
   Se acepta desde 30 min antes del inicio del rango (`EARLY_MARGIN_MIN` en `DoseManager.kt`).
 - **Recordatorio** (notificación) al empezar el rango.
 - **Alarma desagradable** al acabar el rango si no se ha tomado: onda cuadrada aguda
   (2,9/3,5 kHz) a volumen de alarma máximo, vibración continua y pantalla parpadeando en rojo.
   El botón *Atrás* no la quita: solo se para **escaneando la pegatina correcta** o **cancelando la toma**.
+- **Duración máxima** de la alarma en minutos (0 = sin límite) y **repeticiones** (cada X min, N veces).
+  Si nadie responde, la toma queda como *no tomada*, con notificación fija y una **pantalla de aviso
+  sobre la pantalla de bloqueo** que es lo primero que se ve al coger el móvil. Escanear después la
+  registra como *tomada con retraso*.
+- **No molestar**: con el acceso concedido, la alarma suena aunque No molestar bloquee las alarmas
+  (se cambia temporalmente a "solo alarmas" y se restaura al pararla).
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
 - **Historial** de tomas, cancelaciones y cambios.
 - **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.

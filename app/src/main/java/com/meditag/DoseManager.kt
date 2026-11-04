@@ -50,6 +50,7 @@ object DoseManager {
                     (s == DoseStatus.PENDING && nowMin >= m.startMin - EARLY_MARGIN_MIN) -> {
                     markTaken(ctx, m); taken += m.name
                 }
+                s == DoseStatus.MISSED -> { markTaken(ctx, m, late = true); taken += "${m.name} (con retraso)" }
                 m.id in ringing -> { AlarmService.stop(m.id); tests += m.name } // alarma de prueba
                 s == DoseStatus.TAKEN || s == DoseStatus.SKIPPED -> already += m.name
                 s == DoseStatus.NOT_TODAY -> {
@@ -68,10 +69,10 @@ object DoseManager {
         }
     }
 
-    fun markTaken(ctx: Context, med: Medication) {
-        val updated = med.copy(takenDate = LocalDate.now().toString(), takenAt = System.currentTimeMillis())
+    fun markTaken(ctx: Context, med: Medication, late: Boolean = false) {
+        val updated = med.copy(takenDate = LocalDate.now().toString(), takenAt = System.currentTimeMillis(), nextRepeatAt = 0L)
         MedRepo.upsert(ctx, updated)
-        MedRepo.log(ctx, "Tomada: ${med.name}")
+        MedRepo.log(ctx, if (late) "Tomada con retraso: ${med.name}" else "Tomada: ${med.name}")
         finishDose(ctx, updated)
     }
 
@@ -91,7 +92,7 @@ object DoseManager {
 
     /** "Cancelar toma": se salta la toma de hoy, sin alarma, y queda en el historial. */
     fun skipToday(ctx: Context, med: Medication) {
-        val updated = med.copy(skippedDate = LocalDate.now().toString())
+        val updated = med.copy(skippedDate = LocalDate.now().toString(), nextRepeatAt = 0L)
         MedRepo.upsert(ctx, updated)
         MedRepo.log(ctx, "Toma cancelada: ${med.name}")
         finishDose(ctx, updated)
@@ -105,10 +106,48 @@ object DoseManager {
         }
     }
 
+    /**
+     * La alarma ha sonado el tiempo máximo sin respuesta: se para y, si quedan repeticiones,
+     * se programa la siguiente; si no, la toma de hoy queda como "no tomada".
+     */
+    fun alarmTimedOut(ctx: Context, id: Int) {
+        AlarmService.stop(id)
+        val med = MedRepo.get(ctx, id) ?: return
+        val s = med.status()
+        if (s != DoseStatus.DUE && s != DoseStatus.OVERDUE) return // era una prueba
+        val today = LocalDate.now().toString()
+        val every = AlarmSettings.repeatEvery(ctx)
+        val done = med.repeatsToday()
+        val updated = if (every > 0 && done < AlarmSettings.repeatTimes(ctx)) {
+            val next = System.currentTimeMillis() + every * 60_000L
+            med.copy(repeatDate = today, repeatsDone = done + 1, nextRepeatAt = next).also {
+                MedRepo.log(ctx, "Alarma sin respuesta: ${med.name} (volverá a sonar a las ${it.nextRepeatText()})")
+                Notifications.showMissed(ctx, it, "Volverá a sonar a las ${it.nextRepeatText()}. Escanea la pegatina cuando la tomes.")
+            }
+        } else {
+            med.copy(missedDate = today, nextRepeatAt = 0L).also {
+                MedRepo.log(ctx, "Toma NO realizada (alarma sin respuesta): ${med.name}")
+                Notifications.showMissed(ctx, it, "No se registró la toma de hoy. Si la tomas tarde, escanea la pegatina.")
+            }
+        }
+        MedRepo.upsert(ctx, updated)
+        AlarmScheduler.schedule(ctx, updated)
+        // La pantalla de alarma aún está visible, así que se puede abrir el aviso directamente;
+        // queda sobre la pantalla de bloqueo hasta que se vea.
+        runCatching {
+            ctx.startActivity(
+                android.content.Intent(ctx, MissedActivity::class.java)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
+
     private fun finishDose(ctx: Context, med: Medication) {
         AlarmService.stop(med.id)
-        ctx.getSystemService(NotificationManager::class.java)
-            ?.cancel(Notifications.reminderId(med.id))
+        ctx.getSystemService(NotificationManager::class.java)?.apply {
+            cancel(Notifications.reminderId(med.id))
+            cancel(Notifications.missedId(med.id))
+        }
         AlarmScheduler.schedule(ctx, med) // programa la siguiente
     }
 }

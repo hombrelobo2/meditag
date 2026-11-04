@@ -50,6 +50,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.DialogProperties
 import java.time.LocalDate
 import java.time.LocalTime
@@ -323,27 +325,69 @@ fun MonthCalendar(
 @Composable
 fun SoundDialog(act: MainActivity, onDismiss: () -> Unit) {
     val isDefault = AlarmSound.uri(act) == null
+    var maxMin by remember { mutableStateOf(AlarmSettings.maxMinutes(act).toString()) }
+    var every by remember { mutableStateOf(AlarmSettings.repeatEvery(act).toString()) }
+    var times by remember { mutableStateOf(AlarmSettings.repeatTimes(act).toString()) }
+    val dnd = act.dndAccess
+
+    fun num(v: String) = v.filter(Char::isDigit).take(4)
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sonido de la alarma") },
+        title = { Text("Ajustes de la alarma") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Actual: ${act.soundName}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(8.dp))
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Section("Sonido")
+                Text("Actual: ${act.soundName}", style = MaterialTheme.typography.bodySmall)
                 SoundOption("Pitido estridente (por defecto)", isDefault) {
                     AlarmSound.set(act, null, null); act.refreshSound()
                 }
                 SoundOption("Tono de alarma del móvil…", false) { act.pickRingtone() }
                 SoundOption("Archivo de audio…", false) { act.pickAudioFile() }
+
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "Suena siempre a volumen máximo y con vibración. Usa «Probar alarma» en un medicamento para escucharlo. " +
-                        "Si el sonido elegido no se puede reproducir, suena el pitido por defecto.",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Section("Duración")
+                NumberField(maxMin, { maxMin = num(it) }, "Tiempo máximo sonando", "min")
+                Hint("0 = suena sin límite hasta escanear la pegatina.")
+                if ((maxMin.toIntOrNull() ?: 0) > 0) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        NumberField(every, { every = num(it) }, "Repetir cada", "min", Modifier.weight(1f))
+                        NumberField(times, { times = num(it) }, "Veces", "", Modifier.weight(1f))
+                    }
+                    Hint(
+                        "Si nadie la apaga, vuelve a sonar pasado ese tiempo. Al acabar las repeticiones " +
+                            "la toma queda como «no tomada» (0 = no repetir)."
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Section("No molestar")
+                if (dnd) Hint("✔ La alarma sonará aunque esté activado No molestar.")
+                else {
+                    Hint("Para que suene aunque tengas No molestar con las alarmas bloqueadas, da acceso a MediTag.")
+                    TextButton(onClick = { act.requestDndAccess() }) { Text("Permitir acceso a No molestar") }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Hecho") } }
+        confirmButton = {
+            TextButton(onClick = {
+                AlarmSettings.set(act, maxMin.toIntOrNull() ?: 0, every.toIntOrNull() ?: 0, times.toIntOrNull() ?: 0)
+                onDismiss()
+            }) { Text("Guardar") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
+}
+
+@Composable
+private fun NumberField(value: String, onChange: (String) -> Unit, label: String, suffix: String, modifier: Modifier = Modifier) {
+    OutlinedTextField(
+        value = value, onValueChange = onChange, singleLine = true,
+        label = { Text(label) },
+        suffix = { if (suffix.isNotEmpty()) Text(suffix) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = modifier.fillMaxWidth()
     )
 }
 

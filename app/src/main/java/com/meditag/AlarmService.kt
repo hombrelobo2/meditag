@@ -1,5 +1,6 @@
 package com.meditag
 
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -22,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +54,9 @@ class AlarmService : Service() {
         }
 
         fun stop(medId: Int) = _ringing.update { it - medId }
+
+        /** Momento en que empezó a sonar cada medicamento (para la duración máxima). */
+        private val ringSince = java.util.concurrent.ConcurrentHashMap<Int, Long>()
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -62,18 +67,23 @@ class AlarmService : Service() {
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var observing = false
+    private var savedFilter = -1
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
             // El sistema reinició el servicio: recuperamos las tomas fuera de plazo.
-            val overdue = MedRepo.all(this).filter { it.status() == DoseStatus.OVERDUE }.map { it.id }
+            val overdue = MedRepo.all(this)
+                .filter { it.status() == DoseStatus.OVERDUE && !it.repeatPending() }.map { it.id }
             _ringing.update { it + overdue }
         } else {
             val id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
             if (MedRepo.get(this, id) != null) _ringing.update { it + id }
         }
+
+        val nowMs = System.currentTimeMillis()
+        _ringing.value.forEach { ringSince.putIfAbsent(it, nowMs) }
 
         goForeground() // obligatorio siempre tras startForegroundService
         if (_ringing.value.isEmpty()) {
@@ -86,7 +96,23 @@ class AlarmService : Service() {
         if (!observing) {
             observing = true
             scope.launch {
-                _ringing.collect { set -> if (set.isEmpty()) shutdown() else goForeground() }
+                _ringing.collect { set ->
+                    ringSince.keys.retainAll(set)
+                    if (set.isEmpty()) shutdown() else goForeground()
+                }
+            }
+            // Duración máxima: pasado ese tiempo sin respuesta, se para y se repite más tarde.
+            scope.launch {
+                while (true) {
+                    delay(10_000)
+                    val max = AlarmSettings.maxMinutes(this@AlarmService)
+                    if (max <= 0) continue
+                    val limit = System.currentTimeMillis() - max * 60_000L
+                    ringSince.filterValues { it <= limit }.keys.forEach {
+                        ringSince.remove(it)
+                        DoseManager.alarmTimedOut(this@AlarmService, it)
+                    }
+                }
             }
         }
         return START_STICKY
@@ -116,6 +142,7 @@ class AlarmService : Service() {
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "meditag:alarm")
             .apply { acquire(2 * 60 * 60 * 1000L) }
 
+        allowThroughDnd()
         val am = getSystemService(AudioManager::class.java)
         try {
             savedVolume = am.getStreamVolume(AudioManager.STREAM_ALARM)
@@ -137,6 +164,32 @@ class AlarmService : Service() {
         val attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
         @Suppress("DEPRECATION")
         vibrator?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 900, 250, 300, 250), 0), attrs)
+    }
+
+    /**
+     * Si el usuario dio acceso a No molestar y el modo actual silenciaría las alarmas,
+     * se cambia temporalmente a "solo alarmas" y se restaura al parar.
+     */
+    private fun allowThroughDnd() {
+        val nm = getSystemService(NotificationManager::class.java)
+        if (!nm.isNotificationPolicyAccessGranted) return
+        val f = nm.currentInterruptionFilter
+        val blocksAlarms = f == NotificationManager.INTERRUPTION_FILTER_NONE ||
+            (f == NotificationManager.INTERRUPTION_FILTER_PRIORITY &&
+                nm.notificationPolicy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS == 0)
+        if (!blocksAlarms) return
+        try {
+            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
+            savedFilter = f
+        } catch (_: Exception) { }
+    }
+
+    private fun restoreDnd() {
+        if (savedFilter < 0) return
+        try {
+            getSystemService(NotificationManager::class.java).setInterruptionFilter(savedFilter)
+        } catch (_: Exception) { }
+        savedFilter = -1
     }
 
     private fun playCustom(uri: Uri): Boolean {
@@ -222,6 +275,7 @@ class AlarmService : Service() {
             } catch (_: Exception) { }
             savedVolume = -1
         }
+        restoreDnd()
         wakeLock?.let { if (it.isHeld) it.release() }
         wakeLock = null
     }

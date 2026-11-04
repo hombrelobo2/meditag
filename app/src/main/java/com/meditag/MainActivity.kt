@@ -142,7 +142,18 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, "Importados ${p.meds.size} medicamentos", Toast.LENGTH_LONG).show()
     }
 
-    fun refreshSound() { soundName = AlarmSound.name(this) }
+    fun refreshSound() {
+        soundName = AlarmSound.name(this)
+        dndAccess = getSystemService(NotificationManager::class.java).isNotificationPolicyAccessGranted
+        Notifications.createChannels(this) // crea el canal "No molestar" si ya hay acceso
+    }
+
+    var dndAccess: Boolean by mutableStateOf(false)
+        private set
+
+    fun requestDndAccess() {
+        runCatching { startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)) }
+    }
 
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshIssues() }
@@ -253,7 +264,7 @@ fun MainScreen(act: MainActivity) {
         topBar = {
             TopAppBar(
                 title = { Text("MediTag") },
-                actions = { TextButton(onClick = { showSound = true }) { Text("🔔 Sonido") } }
+                actions = { TextButton(onClick = { showSound = true }) { Text("🔔 Alarma") } }
             )
         },
         floatingActionButton = {
@@ -356,9 +367,12 @@ fun MedCard(
     val (label, color) = when (status) {
         DoseStatus.PENDING -> "Pendiente · desde ${fmt(med.startMin)}" to Color(0xFF757575)
         DoseStatus.DUE -> "¡Toca ahora! Escanéala antes de las ${fmt(med.endMin)}" to Color(0xFFEF6C00)
-        DoseStatus.OVERDUE -> "Fuera de plazo · alarma activa" to Color(0xFFC62828)
+        DoseStatus.OVERDUE ->
+            (if (med.repeatPending()) "Sin tomar · la alarma volverá a sonar a las ${med.nextRepeatText()}"
+            else "Fuera de plazo · alarma activa") to Color(0xFFC62828)
         DoseStatus.TAKEN -> "✔ Tomada hoy a las ${med.takenTimeText()}" to Color(0xFF2E7D32)
         DoseStatus.SKIPPED -> "Toma de hoy cancelada" to Color(0xFF757575)
+        DoseStatus.MISSED -> "✖ No tomada hoy · si la tomas tarde, escanea la pegatina" to Color(0xFFC62828)
         DoseStatus.NOT_TODAY -> {
             val next = med.nextScheduled(now.toLocalDate().plusDays(1))
             (if (next != null) "Hoy no toca · próxima: ${fmtDay(next)}" else "No quedan días programados") to Color(0xFF757575)
