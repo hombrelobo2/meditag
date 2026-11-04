@@ -7,6 +7,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -74,7 +87,7 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
         title = { Text("Acerca de MediTag") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Versión ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", fontWeight = FontWeight.SemiBold)
+                Text("Versión ${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.SemiBold)
                 Text("Control de la toma de medicación con etiquetas NFC.")
                 Text("Software libre bajo licencia GNU GPL v3.", style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(4.dp))
@@ -125,4 +138,33 @@ fun ImportConfirmDialog(p: Backup.Pending, onConfirm: () -> Unit, onDismiss: () 
         confirmButton = { TextButton(onClick = onConfirm) { Text("Importar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
+}
+
+/** Historial completo en pantalla aparte (la lista principal queda solo con los medicamentos). */
+@Composable
+fun HistoryDialog(history: List<String>, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Historial", style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                    )
+                    TextButton(onClick = onDismiss) { Text("Cerrar") }
+                }
+                HorizontalDivider()
+                if (history.isEmpty()) {
+                    Text("Todavía no hay nada registrado.", Modifier.padding(16.dp))
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(history) { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    }
+                }
+            }
+        }
+    }
 }

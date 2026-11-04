@@ -22,7 +22,7 @@ etiqueta, no hace falta grabar nada en ella.
 - **No molestar**: con el acceso concedido, la alarma suena aunque No molestar bloquee las alarmas
   (se cambia temporalmente a "solo alarmas" y se restaura al pararla).
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
-- **Historial** de tomas, cancelaciones y cambios.
+- **Historial** de tomas, cancelaciones y cambios, en una pantalla aparte (botón *Historial*).
 - **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
 - **Acerca de**: versión de la app y enlace a este repositorio.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.

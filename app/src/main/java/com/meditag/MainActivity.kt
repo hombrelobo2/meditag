@@ -21,6 +21,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -245,7 +247,7 @@ class MainActivity : ComponentActivity() {
 
 // ---------------------------------------------------------------- UI
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(act: MainActivity) {
     val meds by MedRepo.meds.collectAsState()
@@ -257,6 +259,7 @@ fun MainScreen(act: MainActivity) {
     var showSound by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
@@ -315,17 +318,15 @@ fun MainScreen(act: MainActivity) {
                     onTest = { AlarmService.start(act, med.id) }
                 )
             }
-            if (history.isNotEmpty()) {
-                item { Text("Historial", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
-                items(history.take(30)) { Text(it, style = MaterialTheme.typography.bodySmall) }
-            }
             item {
-                Row(
+                FlowRow(
                     Modifier.fillMaxWidth().padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    OutlinedButton(onClick = { showBackup = true }, modifier = Modifier.weight(1f)) { Text("Copia de seguridad") }
-                    OutlinedButton(onClick = { showAbout = true }, modifier = Modifier.weight(1f)) { Text("Acerca de") }
+                    OutlinedButton(onClick = { showHistory = true }) { OneLine("Historial (${history.size})") }
+                    OutlinedButton(onClick = { showBackup = true }) { OneLine("Copia de seguridad") }
+                    OutlinedButton(onClick = { showAbout = true }) { OneLine("Acerca de") }
                 }
                 Text(
                     "MediTag ${BuildConfig.VERSION_NAME}",
@@ -341,6 +342,7 @@ fun MainScreen(act: MainActivity) {
     if (showSound) SoundDialog(act, onDismiss = { showSound = false })
     if (showAbout) AboutDialog(act, onDismiss = { showAbout = false })
     if (showBackup) BackupDialog(act, onDismiss = { showBackup = false })
+    if (showHistory) HistoryDialog(history, onDismiss = { showHistory = false })
     act.pendingImport?.let { p ->
         ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
     }
@@ -358,6 +360,10 @@ fun MainScreen(act: MainActivity) {
     }
 }
 
+@Composable
+fun OneLine(text: String) = Text(text, maxLines = 1, softWrap = false)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MedCard(
     med: Medication, now: LocalDateTime,
@@ -399,12 +405,17 @@ fun MedCard(
             Spacer(Modifier.height(6.dp))
             Text(label, color = color, fontWeight = FontWeight.SemiBold)
             Text("Etiqueta ${med.tagId}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 8.dp)) {
+            // FlowRow: si no caben en una línea, los botones pasan a la siguiente en vez de partirse.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
                 if (status == DoseStatus.PENDING || status == DoseStatus.DUE || status == DoseStatus.OVERDUE) {
-                    OutlinedButton(onClick = onSkip) { Text("Cancelar toma") }
+                    OutlinedButton(onClick = onSkip) { OneLine("Cancelar toma") }
                 }
-                TextButton(onClick = onEdit) { Text("Editar") }
-                if (med.mode != Mode.ON_DEMAND) TextButton(onClick = onTest) { Text("Probar alarma") }
+                TextButton(onClick = onEdit) { OneLine("Editar") }
+                if (med.mode != Mode.ON_DEMAND) TextButton(onClick = onTest) { OneLine("Probar alarma") }
             }
         }
     }
