@@ -3,8 +3,6 @@ package com.meditag
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationManager
-import android.app.TimePickerDialog
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -12,6 +10,9 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
 import android.os.Bundle
+import android.app.Activity
+import android.media.RingtoneManager
+import android.provider.OpenableColumns
 import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Toast
@@ -36,25 +37,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -71,6 +68,50 @@ class MainActivity : ComponentActivity() {
     var tagCapture: ((String) -> Unit)? by mutableStateOf<((String) -> Unit)?>(null)
     var issues: List<Issue> by mutableStateOf<List<Issue>>(emptyList())
         private set
+
+    var soundName: String by mutableStateOf("")
+        private set
+
+    private val ringtonePicker =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+            if (res.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+            val uri = res.data?.let {
+                IntentCompat.getParcelableExtra(it, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java)
+            }
+            if (uri == null) AlarmSound.set(this, null, null)
+            else AlarmSound.set(this, uri, runCatching { RingtoneManager.getRingtone(this, uri)?.getTitle(this) }.getOrNull())
+            refreshSound()
+        }
+
+    private val audioPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            runCatching {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val name = runCatching {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                    if (c.moveToFirst()) c.getString(0) else null
+                }
+            }.getOrNull()
+            AlarmSound.set(this, uri, name ?: "Archivo de audio")
+            refreshSound()
+        }
+
+    fun pickRingtone() {
+        ringtonePicker.launch(
+            Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+                .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM or RingtoneManager.TYPE_RINGTONE)
+                .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Sonido de la alarma")
+                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, false)
+                .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+                .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, AlarmSound.uri(this))
+        )
+    }
+
+    fun pickAudioFile() = audioPicker.launch(arrayOf("audio/*"))
+
+    fun refreshSound() { soundName = AlarmSound.name(this) }
 
     private val notifPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshIssues() }
@@ -91,6 +132,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshIssues()
+        refreshSound()
         nfc?.enableReaderMode(this, { tag -> onTag(Nfc.tagId(tag)) }, Nfc.READER_FLAGS, null)
     }
 
@@ -170,11 +212,17 @@ fun MainScreen(act: MainActivity) {
     var editor by remember { mutableStateOf<Medication?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     var confirmSkip by remember { mutableStateOf<Medication?>(null) }
+    var showSound by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("MediTag") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("MediTag") },
+                actions = { TextButton(onClick = { showSound = true }) { Text("🔔 Sonido") } }
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = { editor = null; showEditor = true }) { Text("+  Añadir") }
         }
@@ -203,7 +251,8 @@ fun MainScreen(act: MainActivity) {
             }
             if (meds.isEmpty()) item {
                 Text(
-                    "Añade un medicamento, escanea la pegatina NFC que lleva pegada y elige su rango horario. " +
+                    "Añade un medicamento, escanea la pegatina NFC que lleva pegada y elige su pauta (cada día, " +
+                        "días de la semana, cada N días, fechas concretas o a demanda) y su rango horario. " +
                         "Para registrar cada toma basta con acercar la pegatina al móvil.",
                     Modifier.padding(vertical = 24.dp), style = MaterialTheme.typography.bodyLarge
                 )
@@ -230,6 +279,7 @@ fun MainScreen(act: MainActivity) {
     }
 
     if (showEditor) EditorDialog(initial = editor, act = act, onDismiss = { showEditor = false })
+    if (showSound) SoundDialog(act, onDismiss = { showSound = false })
 
     confirmSkip?.let { med ->
         AlertDialog(
@@ -256,6 +306,18 @@ fun MedCard(
         DoseStatus.OVERDUE -> "Fuera de plazo · alarma activa" to Color(0xFFC62828)
         DoseStatus.TAKEN -> "✔ Tomada hoy a las ${med.takenTimeText()}" to Color(0xFF2E7D32)
         DoseStatus.SKIPPED -> "Toma de hoy cancelada" to Color(0xFF757575)
+        DoseStatus.NOT_TODAY -> {
+            val next = med.nextScheduled(now.toLocalDate().plusDays(1))
+            (if (next != null) "Hoy no toca · próxima: ${fmtDay(next)}" else "No quedan días programados") to Color(0xFF757575)
+        }
+        DoseStatus.ON_DEMAND -> {
+            val n = med.todayCount()
+            when {
+                n > 0 -> "Hoy: $n ${if (n == 1) "toma" else "tomas"} · última a las ${med.takenTimeText()}"
+                med.takenAt > 0 -> "Última toma: ${med.takenDateTimeText()}"
+                else -> "Sin tomas registradas · escanea al tomarla"
+            } to Color(0xFF00796B)
+        }
         DoseStatus.DISABLED -> "Desactivado" to Color(0xFF9E9E9E)
     }
     Card(Modifier.fillMaxWidth()) {
@@ -263,7 +325,7 @@ fun MedCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(med.name, style = MaterialTheme.typography.titleLarge)
-                    Text("Toma entre ${fmt(med.startMin)} y ${fmt(med.endMin)}", style = MaterialTheme.typography.bodyMedium)
+                    Text(med.describe(), style = MaterialTheme.typography.bodyMedium)
                 }
                 Switch(checked = med.enabled, onCheckedChange = onToggle)
             }
@@ -275,95 +337,8 @@ fun MedCard(
                     OutlinedButton(onClick = onSkip) { Text("Cancelar toma") }
                 }
                 TextButton(onClick = onEdit) { Text("Editar") }
-                TextButton(onClick = onTest) { Text("Probar alarma") }
+                if (med.mode != Mode.ON_DEMAND) TextButton(onClick = onTest) { Text("Probar alarma") }
             }
         }
     }
-}
-
-@Composable
-fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit) {
-    val ctx = LocalContext.current
-    var name by remember { mutableStateOf(initial?.name ?: "") }
-    var tag by remember { mutableStateOf(initial?.tagId ?: "") }
-    var start by remember { mutableIntStateOf(initial?.startMin ?: (8 * 60)) }
-    var end by remember { mutableIntStateOf(initial?.endMin ?: (10 * 60)) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    val waiting = act.tagCapture != null
-
-    DisposableEffect(Unit) { onDispose { act.tagCapture = null } }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Nuevo medicamento" else "Editar medicamento") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = name, onValueChange = { name = it },
-                    label = { Text("Nombre del medicamento") }, singleLine = true
-                )
-                Text("Etiqueta NFC", style = MaterialTheme.typography.labelLarge)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        if (waiting) "Acerca la pegatina al móvil…" else tag.ifBlank { "Sin asignar" },
-                        Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium
-                    )
-                    if (waiting) TextButton(onClick = { act.tagCapture = null }) { Text("Cancelar") }
-                    else Button(onClick = { act.tagCapture = { tag = it } }) { Text("Escanear") }
-                }
-                Text("Rango horario de la toma", style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { pickTime(ctx, start) { start = it } }, modifier = Modifier.weight(1f)) {
-                        Text("Desde ${fmt(start)}")
-                    }
-                    OutlinedButton(onClick = { pickTime(ctx, end) { end = it } }, modifier = Modifier.weight(1f)) {
-                        Text("Hasta ${fmt(end)}")
-                    }
-                }
-                Text(
-                    "Si a las ${fmt(end)} no has escaneado la pegatina, sonará la alarma hasta que lo hagas.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                if (initial != null) {
-                    TextButton(onClick = {
-                        if (!confirmDelete) confirmDelete = true
-                        else {
-                            AlarmScheduler.cancel(ctx, initial.id)
-                            AlarmService.stop(initial.id)
-                            MedRepo.delete(ctx, initial.id)
-                            MedRepo.log(ctx, "Eliminado: ${initial.name}")
-                            onDismiss()
-                        }
-                    }) {
-                        Text(if (confirmDelete) "Pulsa otra vez para eliminar" else "Eliminar medicamento",
-                            color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                when {
-                    name.isBlank() -> error = "Escribe el nombre del medicamento"
-                    tag.isBlank() -> error = "Escanea la pegatina NFC del medicamento"
-                    end - start < 5 -> error = "La hora de fin debe ser al menos 5 min posterior a la de inicio"
-                    else -> {
-                        val base = initial ?: Medication(id = MedRepo.nextId(ctx), name = "", tagId = "", startMin = 0, endMin = 0)
-                        val med = base.copy(name = name.trim(), tagId = tag, startMin = start, endMin = end)
-                        MedRepo.upsert(ctx, med)
-                        if (initial == null) MedRepo.log(ctx, "Añadido: ${med.name} (${fmt(start)}–${fmt(end)})")
-                        AlarmScheduler.schedule(ctx, med)
-                        onDismiss()
-                    }
-                }
-            }) { Text("Guardar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
-}
-
-private fun pickTime(ctx: Context, current: Int, onPicked: (Int) -> Unit) {
-    TimePickerDialog(ctx, { _, h, m -> onPicked(h * 60 + m) }, current / 60, current % 60, true).show()
 }

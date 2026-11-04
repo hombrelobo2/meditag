@@ -41,13 +41,22 @@ object DoseManager {
         for (m in meds) {
             val s = m.status(now)
             when {
+                s == DoseStatus.ON_DEMAND -> {
+                    markOnDemand(ctx, m)
+                    val n = m.todayCount() + 1
+                    taken += "${m.name} (${n}ª de hoy)"
+                }
                 s == DoseStatus.DUE || s == DoseStatus.OVERDUE ||
                     (s == DoseStatus.PENDING && nowMin >= m.startMin - EARLY_MARGIN_MIN) -> {
                     markTaken(ctx, m); taken += m.name
                 }
                 m.id in ringing -> { AlarmService.stop(m.id); tests += m.name } // alarma de prueba
                 s == DoseStatus.TAKEN || s == DoseStatus.SKIPPED -> already += m.name
-                else -> notYet += "${m.name} (desde ${fmt(m.startMin)})"
+                s == DoseStatus.NOT_TODAY -> {
+                    val next = m.nextScheduled(now.toLocalDate().plusDays(1))
+                    notYet += "${m.name} (hoy no toca; próxima ${next?.let { fmtDay(it) } ?: "sin fecha"})"
+                }
+                else -> notYet += "${m.name} (desde las ${fmt(m.startMin)})"
             }
         }
         val hhmm = now.format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -55,7 +64,7 @@ object DoseManager {
             taken.isNotEmpty() -> ScanResult(true, "✔ Toma registrada: ${taken.joinToString()} a las $hhmm")
             tests.isNotEmpty() -> ScanResult(true, "Prueba superada: alarma detenida")
             notYet.isEmpty() -> ScanResult(false, "${already.joinToString()}: ya registrada hoy")
-            else -> ScanResult(false, "Aún no es la hora: ${notYet.joinToString()}")
+            else -> ScanResult(false, "Aún no: ${notYet.joinToString()}")
         }
     }
 
@@ -64,6 +73,20 @@ object DoseManager {
         MedRepo.upsert(ctx, updated)
         MedRepo.log(ctx, "Tomada: ${med.name}")
         finishDose(ctx, updated)
+    }
+
+    /** Medicamento a demanda: se registra cada vez que se escanea. */
+    private fun markOnDemand(ctx: Context, med: Medication) {
+        val today = LocalDate.now().toString()
+        val updated = med.copy(
+            takenDate = today,
+            takenAt = System.currentTimeMillis(),
+            countDate = today,
+            count = med.todayCount() + 1,
+        )
+        MedRepo.upsert(ctx, updated)
+        MedRepo.log(ctx, "Tomada (a demanda): ${med.name}")
+        AlarmService.stop(med.id)
     }
 
     /** "Cancelar toma": se salta la toma de hoy, sin alarma, y queda en el historial. */
@@ -86,6 +109,6 @@ object DoseManager {
         AlarmService.stop(med.id)
         ctx.getSystemService(NotificationManager::class.java)
             ?.cancel(Notifications.reminderId(med.id))
-        AlarmScheduler.schedule(ctx, med) // programa la de mañana
+        AlarmScheduler.schedule(ctx, med) // programa la siguiente
     }
 }

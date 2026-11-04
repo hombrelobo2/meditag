@@ -27,11 +27,12 @@ object AlarmScheduler {
 
     fun schedule(ctx: Context, med: Medication) {
         cancel(ctx, med.id)
-        if (!med.enabled) return
+        if (!med.enabled || med.mode == Mode.ON_DEMAND) return
 
         val now = LocalDateTime.now()
         val today = now.toLocalDate()
-        val day: LocalDate = if (med.isDoneOn(today)) today.plusDays(1) else today
+        val from: LocalDate = if (med.isDoneOn(today)) today.plusDays(1) else today
+        val day = med.nextScheduled(from) ?: return // no quedan días con toma
         val startAt = day.atTime(med.start)
         var alarmAt = day.atTime(med.end)
 
@@ -87,7 +88,11 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         val id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
         val med = MedRepo.get(ctx, id) ?: return
-        if (!med.enabled || med.isDoneOn(LocalDate.now())) return
+        val today = LocalDate.now()
+        if (!med.enabled || med.isDoneOn(today) || !med.isScheduledOn(today)) {
+            AlarmScheduler.schedule(ctx, med)
+            return
+        }
         when (intent.action) {
             AlarmScheduler.ACTION_REMIND -> Notifications.showReminder(ctx, med)
             AlarmScheduler.ACTION_ALARM -> AlarmService.start(ctx, id)

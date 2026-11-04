@@ -8,6 +8,8 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -55,6 +57,7 @@ class AlarmService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     @Volatile private var playing = false
     private var audioThread: Thread? = null
+    private var player: MediaPlayer? = null
     private var savedVolume = -1
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -119,7 +122,11 @@ class AlarmService : Service() {
             am.setStreamVolume(AudioManager.STREAM_ALARM, am.getStreamMaxVolume(AudioManager.STREAM_ALARM), 0)
         } catch (_: Exception) { }
 
-        audioThread = thread(name = "meditag-alarm-audio") { playHarshSound() }
+        // Sonido elegido por el usuario; si falla (archivo borrado, sin permiso…) se usa el pitido.
+        val custom = AlarmSound.uri(this)
+        if (custom == null || !playCustom(custom)) {
+            audioThread = thread(name = "meditag-alarm-audio") { playHarshSound() }
+        }
 
         vibrator = if (Build.VERSION.SDK_INT >= 31) {
             getSystemService(VibratorManager::class.java).defaultVibrator
@@ -130,6 +137,27 @@ class AlarmService : Service() {
         val attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
         @Suppress("DEPRECATION")
         vibrator?.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 900, 250, 300, 250), 0), attrs)
+    }
+
+    private fun playCustom(uri: Uri): Boolean {
+        val mp = MediaPlayer()
+        return try {
+            mp.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            mp.setDataSource(this, uri)
+            mp.isLooping = true
+            mp.prepare()
+            mp.start()
+            player = mp
+            true
+        } catch (_: Exception) {
+            mp.release()
+            false
+        }
     }
 
     private fun playHarshSound() {
@@ -184,6 +212,8 @@ class AlarmService : Service() {
         playing = false
         try { audioThread?.join(500) } catch (_: InterruptedException) { }
         audioThread = null
+        player?.let { try { it.stop() } catch (_: Exception) { }; it.release() }
+        player = null
         vibrator?.cancel()
         if (savedVolume >= 0) {
             try {

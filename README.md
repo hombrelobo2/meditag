@@ -5,7 +5,10 @@ al móvil la pegatina NFC pegada al medicamento. Solo se usa el **UID** de la
 etiqueta, no hace falta grabar nada en ella.
 
 ## Funciones
-- **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*) y **rango horario** (desde / hasta).
+- **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y **rango horario** (desde / hasta).
+- **Pautas**: cada día · días de la semana (L–D) · cada N días (días alternos = 2) · fechas concretas
+  marcadas en un calendario · **a demanda** (sin horario ni alarma: cada escaneo registra una toma y se cuentan las del día).
+- **Sonido de la alarma** (botón 🔔 Sonido): pitido estridente por defecto, un tono de alarma del móvil o cualquier archivo de audio.
 - **Registrar toma**: acercar la pegatina con la app abierta *o cerrada* (Android abre la app al detectarla).
   Se acepta desde 30 min antes del inicio del rango (`EARLY_MARGIN_MIN` en `DoseManager.kt`).
 - **Recordatorio** (notificación) al empezar el rango.
@@ -32,6 +35,7 @@ todos; en Xiaomi/Huawei/Samsung conviene además permitir el *inicio automático
 - La antena NFC suele estar en el centro de la parte trasera.
 - Rangos que cruzan la medianoche (p.ej. 23:00–01:00) no están soportados; usa 23:00–23:59.
 - Para varias tomas al día del mismo medicamento, añádelo varias veces con la misma pegatina y distinto rango.
+- Si al guardar un medicamento ya ha pasado el rango de hoy, empieza a contar desde mañana (no suena nada más guardar).
 
 ## Estructura
 | Archivo | Qué hace |
@@ -41,7 +45,8 @@ todos; en Xiaomi/Huawei/Samsung conviene además permitir el *inicio automático
 | `AlarmScheduler.kt` | Programa recordatorio y alarma (AlarmManager), receptores de alarma y arranque |
 | `AlarmService.kt` | Servicio en primer plano: sonido, vibración, volumen máximo |
 | `AlarmActivity.kt` | Pantalla de alarma a pantalla completa con lector NFC |
-| `MainActivity.kt` | Lista, editor, avisos de permisos y lectura NFC |
+| `MainActivity.kt` | Lista, avisos de permisos, selector de sonido y lectura NFC |
+| `Editor.kt` | Editor de medicamento: pauta, calendario mensual, horario; diálogo de sonido |
 
 ## Instalar en el móvil sin Android Studio
 Cada subida a `main` compila el APK automáticamente (pestaña **Actions**) y lo publica en
