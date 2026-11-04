@@ -17,6 +17,8 @@ etiqueta, no hace falta grabar nada en ella.
   El botón *Atrás* no la quita: solo se para **escaneando la pegatina correcta** o **cancelando la toma**.
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
 - **Historial** de tomas, cancelaciones y cambios.
+- **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
+- **Acerca de**: versión de la app y enlace a este repositorio.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - Botón **Probar alarma** para comprobar que suena y que la pegatina la detiene (la prueba no marca la toma).
 
@@ -52,3 +54,7 @@ todos; en Xiaomi/Huawei/Samsung conviene además permitir el *inicio automático
 Cada subida a `main` compila el APK automáticamente (pestaña **Actions**) y lo publica en
 **Releases → "MediTag (última compilación)"**. Ábrelo desde el navegador del móvil,
 descarga `MediTag.apk` y permite "instalar apps de origen desconocido" cuando lo pida.
+
+## Licencia
+MediTag es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la
+[GNU General Public License v3.0](LICENSE) publicada por la Free Software Foundation.

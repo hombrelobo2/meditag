@@ -111,6 +111,37 @@ class MainActivity : ComponentActivity() {
 
     fun pickAudioFile() = audioPicker.launch(arrayOf("audio/*"))
 
+    /** Copia leída y pendiente de confirmar. */
+    var pendingImport: Backup.Pending? by mutableStateOf<Backup.Pending?>(null)
+
+    private val exportLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val msg = runCatching { Backup.export(this, uri) }
+                .getOrElse { "No se pudo exportar: ${it.message}" }
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        }
+
+    private val importLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            runCatching { Backup.read(this, uri) }
+                .onSuccess { pendingImport = it }
+                .onFailure {
+                    Toast.makeText(this, "Archivo no válido: ${it.message}", Toast.LENGTH_LONG).show()
+                }
+        }
+
+    fun exportBackup() = exportLauncher.launch(Backup.suggestedName())
+    fun importBackup() = importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
+
+    fun confirmImport() {
+        val p = pendingImport ?: return
+        pendingImport = null
+        Backup.apply(this, p)
+        Toast.makeText(this, "Importados ${p.meds.size} medicamentos", Toast.LENGTH_LONG).show()
+    }
+
     fun refreshSound() { soundName = AlarmSound.name(this) }
 
     private val notifPermission =
@@ -213,6 +244,8 @@ fun MainScreen(act: MainActivity) {
     var showEditor by remember { mutableStateOf(false) }
     var confirmSkip by remember { mutableStateOf<Medication?>(null) }
     var showSound by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
+    var showBackup by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
@@ -275,11 +308,31 @@ fun MainScreen(act: MainActivity) {
                 item { Text("Historial", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
                 items(history.take(30)) { Text(it, style = MaterialTheme.typography.bodySmall) }
             }
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(onClick = { showBackup = true }, modifier = Modifier.weight(1f)) { Text("Copia de seguridad") }
+                    OutlinedButton(onClick = { showAbout = true }, modifier = Modifier.weight(1f)) { Text("Acerca de") }
+                }
+                Text(
+                    "MediTag ${BuildConfig.VERSION_NAME}",
+                    Modifier.fillMaxWidth().padding(top = 8.dp),
+                    style = MaterialTheme.typography.labelSmall, color = Color.Gray,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     }
 
     if (showEditor) EditorDialog(initial = editor, act = act, onDismiss = { showEditor = false })
     if (showSound) SoundDialog(act, onDismiss = { showSound = false })
+    if (showAbout) AboutDialog(act, onDismiss = { showAbout = false })
+    if (showBackup) BackupDialog(act, onDismiss = { showBackup = false })
+    act.pendingImport?.let { p ->
+        ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
+    }
 
     confirmSkip?.let { med ->
         AlertDialog(

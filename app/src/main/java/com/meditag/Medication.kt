@@ -205,6 +205,15 @@ object MedRepo {
     }
 
     @Synchronized
+    fun replaceAll(ctx: Context, meds: List<Medication>, history: List<String>) {
+        init(ctx)
+        _meds.value = meds.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
+        _history.value = history.take(MAX_HISTORY)
+        persist(ctx)
+        prefs(ctx).edit().putString(KEY_HISTORY, JSONArray(_history.value).toString()).apply()
+    }
+
+    @Synchronized
     fun delete(ctx: Context, id: Int) {
         _meds.value = all(ctx).filterNot { it.id == id }
         persist(ctx)
