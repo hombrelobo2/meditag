@@ -27,6 +27,13 @@ object DoseManager {
     private const val EARLY_MARGIN_MIN = 30
 
     fun onTagScanned(ctx: Context, tagId: String): ScanResult {
+        // Alarma de prueba: cualquier pegatina la detiene y NO se registra ninguna toma.
+        if (AlarmService.TEST_ID in AlarmService.ringing.value) {
+            AlarmService.stop(AlarmService.TEST_ID)
+            if (AlarmService.ringing.value.isEmpty()) {
+                return ScanResult(true, "✔ Prueba superada: pegatina leída ($tagId). No se ha registrado ninguna toma.")
+            }
+        }
         val meds = MedRepo.all(ctx).filter { it.enabled && it.tagId.equals(tagId, ignoreCase = true) }
         if (meds.isEmpty()) return ScanResult(false, "Etiqueta no registrada ($tagId)")
 
@@ -114,7 +121,7 @@ object DoseManager {
         AlarmService.stop(id)
         val med = MedRepo.get(ctx, id) ?: return
         val s = med.status()
-        if (s != DoseStatus.DUE && s != DoseStatus.OVERDUE) return // era una prueba
+        if (s != DoseStatus.DUE && s != DoseStatus.OVERDUE) return
         val today = LocalDate.now().toString()
         val every = AlarmSettings.repeatEvery(ctx)
         val done = med.repeatsToday()

@@ -389,6 +389,15 @@ fun SoundDialog(act: MainActivity, onDismiss: () -> Unit) {
                 }
 
                 Spacer(Modifier.height(8.dp))
+                Section("Probar")
+                Hint("Guarda estos ajustes y hace sonar la alarma. Se para con «Detener prueba» o acercando cualquier pegatina. No afecta a ninguna toma.")
+                OutlinedButton(onClick = {
+                    AlarmSettings.set(act, maxMin.toIntOrNull() ?: 0, every.toIntOrNull() ?: 0, times.toIntOrNull() ?: 0)
+                    onDismiss()
+                    AlarmService.startTest(act)
+                }) { Text("🔔 Probar alarma") }
+
+                Spacer(Modifier.height(8.dp))
                 Section("No molestar")
                 if (dnd) Hint("✔ La alarma sonará aunque esté activado No molestar.")
                 else {

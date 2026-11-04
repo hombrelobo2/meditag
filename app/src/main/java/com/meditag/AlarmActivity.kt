@@ -92,6 +92,7 @@ class AlarmActivity : ComponentActivity() {
         LaunchedEffect(ringing) { if (ringing.isEmpty()) finish() }
 
         val list = meds.filter { it.id in ringing }
+        val test = AlarmService.TEST_ID in ringing
         val flash = rememberInfiniteTransition(label = "flash")
         val bg by flash.animateColor(
             initialValue = Color(0xFFC40000),
@@ -107,14 +108,17 @@ class AlarmActivity : ComponentActivity() {
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Text(
-                    "¡TOMA TU MEDICACIÓN!", color = Color.White, fontSize = 34.sp,
+                    if (test && list.isEmpty()) "PRUEBA DE ALARMA" else "¡TOMA TU MEDICACIÓN!",
+                    color = Color.White, fontSize = 34.sp,
                     fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                 )
                 list.forEach {
                     Text(it.name, color = Color.Yellow, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 }
                 Text(
-                    "Desbloquea el móvil y acerca la etiqueta NFC del medicamento a la parte trasera para detener la alarma.",
+                    if (test && list.isEmpty())
+                        "Acerca cualquier pegatina para comprobar que la lectura funciona, o pulsa «Detener prueba». No se registra ninguna toma."
+                    else "Desbloquea el móvil y acerca la etiqueta NFC del medicamento a la parte trasera para detener la alarma.",
                     color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center
                 )
                 message?.let {
@@ -122,6 +126,11 @@ class AlarmActivity : ComponentActivity() {
                 }
             }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (test) OutlinedButton(
+                    onClick = { AlarmService.stop(AlarmService.TEST_ID) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                ) { Text("Detener prueba") }
                 list.forEach { med ->
                     OutlinedButton(
                         onClick = { confirm = med },

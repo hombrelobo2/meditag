@@ -44,6 +44,11 @@ class AlarmService : Service() {
         /** IDs de medicamentos cuya alarma está sonando. */
         val ringing: StateFlow<Set<Int>> = _ringing.asStateFlow()
 
+        /** ID reservado para la alarma de prueba (no corresponde a ningún medicamento). */
+        const val TEST_ID = 0
+
+        fun startTest(ctx: Context) = start(ctx, TEST_ID)
+
         fun start(ctx: Context, medId: Int) {
             ContextCompat.startForegroundService(
                 ctx,
@@ -79,7 +84,7 @@ class AlarmService : Service() {
             _ringing.update { it + overdue }
         } else {
             val id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
-            if (MedRepo.get(this, id) != null) _ringing.update { it + id }
+            if (id == TEST_ID || MedRepo.get(this, id) != null) _ringing.update { it + id }
         }
 
         val nowMs = System.currentTimeMillis()
@@ -119,8 +124,9 @@ class AlarmService : Service() {
     }
 
     private fun goForeground() {
-        val names = MedRepo.all(this).filter { it.id in _ringing.value }
-            .joinToString { it.name }.ifBlank { "Medicación" }
+        val names = (MedRepo.all(this).filter { it.id in _ringing.value }.map { it.name } +
+            (if (TEST_ID in _ringing.value) listOf("Prueba de alarma") else emptyList()))
+            .joinToString().ifBlank { "Medicación" }
         val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
         ServiceCompat.startForeground(
             this, Notifications.ALARM_NOTIF_ID, Notifications.alarmNotification(this, names), type

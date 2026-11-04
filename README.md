@@ -26,7 +26,7 @@ etiqueta, no hace falta grabar nada en ella.
 - **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
 - **Acerca de**: versión de la app y enlace a este repositorio.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
-- Botón **Probar alarma** para comprobar que suena y que la pegatina la detiene (la prueba no marca la toma).
+- **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
 
 ## Compilar
 1. Abre la carpeta `MediTag` en Android Studio (Ladybug o posterior) y deja que sincronice Gradle.

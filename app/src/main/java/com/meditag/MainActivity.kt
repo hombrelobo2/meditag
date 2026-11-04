@@ -315,7 +315,7 @@ fun MainScreen(act: MainActivity) {
                         AlarmScheduler.schedule(act, m)
                         if (!enabled) AlarmService.stop(med.id)
                     },
-                    onTest = { AlarmService.start(act, med.id) }
+
                 )
             }
             item {
@@ -367,7 +367,7 @@ fun OneLine(text: String) = Text(text, maxLines = 1, softWrap = false)
 @Composable
 fun MedCard(
     med: Medication, now: LocalDateTime,
-    onEdit: () -> Unit, onSkip: () -> Unit, onToggle: (Boolean) -> Unit, onTest: () -> Unit,
+    onEdit: () -> Unit, onSkip: () -> Unit, onToggle: (Boolean) -> Unit,
 ) {
     val status = med.status(now)
     val (label, color) = when (status) {
@@ -415,7 +415,6 @@ fun MedCard(
                     OutlinedButton(onClick = onSkip) { OneLine("Cancelar toma") }
                 }
                 TextButton(onClick = onEdit) { OneLine("Editar") }
-                if (med.mode != Mode.ON_DEMAND) TextButton(onClick = onTest) { OneLine("Probar alarma") }
             }
         }
     }
