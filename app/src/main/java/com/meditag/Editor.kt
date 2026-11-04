@@ -82,6 +82,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
     var dates by remember { mutableStateOf(initial?.dates ?: emptySet()) }
     var month by remember { mutableStateOf(YearMonth.now()) }
     var error by remember { mutableStateOf<String?>(null) }
+    var timeMsg by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     val waiting = act.tagCapture != null
 
@@ -97,7 +98,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
         error = when {
             name.isBlank() -> "Escribe el nombre del medicamento"
             tag.isBlank() -> "Escanea la pegatina NFC del medicamento"
-            mode != Mode.ON_DEMAND && end - start < 5 -> "La hora de fin debe ser al menos 5 min posterior a la de inicio"
+            mode != Mode.ON_DEMAND && end - start < MIN_RANGE -> "La hora de fin debe ser al menos $MIN_RANGE min posterior a la de inicio"
             mode == Mode.WEEKDAYS && weekdays == 0 -> "Elige al menos un día de la semana"
             mode == Mode.DATES && dates.none { it >= today.toString() } -> "Marca en el calendario al menos un día (de hoy en adelante)"
             else -> null
@@ -205,14 +206,40 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
 
                         Section("Rango horario de la toma")
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { pickTime(ctx, start) { start = it } }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = {
+                                pickTime(ctx, start) { picked ->
+                                    val s = picked.coerceAtMost(LAST_START)
+                                    val duration = (end - start).coerceAtLeast(60)
+                                    start = s
+                                    timeMsg = when {
+                                        picked > LAST_START -> "La hora de inicio máxima es ${fmt(LAST_START)}."
+                                        else -> null
+                                    }
+                                    // Si el fin queda antes del inicio, se mueve para mantener el rango.
+                                    if (end < s + MIN_RANGE) {
+                                        end = (s + duration).coerceAtMost(LAST_MIN)
+                                        timeMsg = (timeMsg?.plus(" ") ?: "") + "Hora de fin ajustada a las ${fmt(end)}."
+                                    }
+                                }
+                            }, modifier = Modifier.weight(1f)) {
                                 Text("Desde ${fmt(start)}")
                             }
-                            OutlinedButton(onClick = { pickTime(ctx, end) { end = it } }, modifier = Modifier.weight(1f)) {
+                            OutlinedButton(onClick = {
+                                pickTime(ctx, end) { picked ->
+                                    if (picked < start + MIN_RANGE) {
+                                        timeMsg = "La hora de fin no puede ser anterior a la de inicio (${fmt(start)}). " +
+                                            "Elige una hora a partir de las ${fmt(start + MIN_RANGE)}."
+                                    } else {
+                                        end = picked
+                                        timeMsg = null
+                                    }
+                                }
+                            }, modifier = Modifier.weight(1f)) {
                                 Text("Hasta ${fmt(end)}")
                             }
                         }
-                        Hint("Si a las ${fmt(end)} no has escaneado la pegatina, sonará la alarma hasta que lo hagas.")
+                        timeMsg?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                        Hint("Si a las ${fmt(end)} no has escaneado la pegatina, sonará la alarma.")
                     }
 
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold) }
@@ -401,6 +428,11 @@ private fun SoundOption(label: String, selected: Boolean, onClick: () -> Unit) {
         Text(label)
     }
 }
+
+/** Rango mínimo entre inicio y fin (min). */
+private const val MIN_RANGE = 5
+private const val LAST_MIN = 23 * 60 + 59
+private const val LAST_START = LAST_MIN - MIN_RANGE
 
 fun pickTime(ctx: Context, current: Int, onPicked: (Int) -> Unit) {
     TimePickerDialog(ctx, { _, h, m -> onPicked(h * 60 + m) }, current / 60, current % 60, true).show()
