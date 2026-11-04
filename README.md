@@ -28,6 +28,11 @@ etiqueta, no hace falta grabar nada en ella.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
 
+## Guía para usuarios
+📄 **[Guía de instalación y uso (PDF)](docs/MediTag-Guia-de-uso.pdf)**: explicada paso a paso para personas
+poco habituadas al móvil, con código QR de descarga. Se puede imprimir y repartir libremente.
+La fuente está en `docs/guia/` (HTML; el PDF se genera imprimiendo el HTML con Chromium).
+
 ## Compilar
 1. Abre la carpeta `MediTag` en Android Studio (Ladybug o posterior) y deja que sincronice Gradle.
 2. Conecta el móvil con depuración USB y pulsa *Run*.

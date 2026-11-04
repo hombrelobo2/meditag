@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>MediTag · Guía de instalación y uso</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root{
+    --teal:#00695C; --teal2:#00897B; --tealbg:#E0F2F1; --ink:#1d2421; --muted:#5b6662;
+    --red:#C62828; --redbg:#FDECEA; --amber:#FFF4D6; --amberline:#E0A800; --line:#d9e2df;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",sans-serif;font-size:10.5pt;line-height:1.5;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{width:210mm;height:297mm;padding:16mm 17mm 14mm;position:relative;page-break-after:always;overflow:hidden}
+  .page:last-child{page-break-after:auto}
+  .foot{position:absolute;left:17mm;right:17mm;bottom:8mm;display:flex;justify-content:space-between;font-size:8pt;color:var(--muted);border-top:1px solid var(--line);padding-top:2mm}
+  h1{font-size:26pt;line-height:1.1;margin:0 0 3mm;letter-spacing:-.5px}
+  h2{font-size:16pt;margin:0 0 4mm;color:var(--teal);display:flex;align-items:center;gap:3mm}
+  h2 .n{display:inline-flex;align-items:center;justify-content:center;width:9mm;height:9mm;border-radius:50%;background:var(--teal);color:#fff;font-size:12pt;flex:none}
+  h3{font-size:11.5pt;margin:5mm 0 2mm}
+  p{margin:0 0 2.5mm}
+  .lead{font-size:11.5pt;color:var(--muted)}
+  b,strong{font-weight:650}
+  .ui{display:inline-block;padding:0 1.6mm;border:1px solid #9fb8b2;border-radius:1.5mm;background:#f4f8f7;font-weight:600;font-size:9.5pt;white-space:nowrap}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:s}
+  .steps li{position:relative;padding:0 0 3mm 10mm;counter-increment:s}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:.2mm;width:6.5mm;height:6.5mm;border-radius:50%;background:var(--tealbg);color:var(--teal);font-weight:700;font-size:9.5pt;display:flex;align-items:center;justify-content:center}
+  .box{border-radius:3mm;padding:3.5mm 4.5mm;margin:3mm 0}
+  .box p:last-child{margin:0}
+  .tip{background:var(--tealbg)}
+  .warn{background:var(--amber);border-left:1.5mm solid var(--amberline)}
+  .alert{background:var(--redbg);border-left:1.5mm solid var(--red)}
+  .box .t{font-weight:700;margin-bottom:1mm;display:block}
+  .cols{display:grid;grid-template-columns:1fr 62mm;gap:8mm;align-items:start}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:7mm}
+  ul.check{list-style:none;padding:0;margin:0}
+  ul.check li{padding-left:7mm;position:relative;margin-bottom:2mm}
+  ul.check li::before{content:"";position:absolute;left:0;top:1.2mm;width:3.6mm;height:3.6mm;border:1.6px solid var(--teal);border-radius:1mm}
+  ul.dots{padding-left:5mm;margin:0 0 2mm} ul.dots li{margin-bottom:1.2mm}
+  table{border-collapse:collapse;width:100%;font-size:10pt}
+  td,th{border-bottom:1px solid var(--line);padding:2.2mm 2mm;text-align:left;vertical-align:top}
+  th{color:var(--teal);font-size:9pt;text-transform:uppercase;letter-spacing:.4px}
+
+  /* --- Móvil de ejemplo --- */
+  .phone{width:62mm;border:2.6mm solid #222;border-radius:7mm;background:#101511;overflow:hidden;box-shadow:0 1.5mm 4mm rgba(0,0,0,.18);font-size:7.5pt;line-height:1.3;color:#e9efe9}
+  .phone .bar{height:5mm;display:flex;justify-content:space-between;padding:0 3mm;align-items:center;font-size:6pt;color:#aab}
+  .phone .scr{padding:2.5mm 3mm 4mm;min-height:96mm}
+  .phone .ttl{display:flex;justify-content:space-between;align-items:center;font-size:11pt;margin:1mm 0 3mm}
+  .phone .ttl span{font-size:7.5pt;color:#7ee08a}
+  .phone .card{background:#2a302c;border-radius:2.5mm;padding:2.5mm;margin-bottom:2.5mm}
+  .phone .nm{font-size:9pt;font-weight:650;color:#fff}
+  .phone .ok{color:#7ee08a;font-weight:600}
+  .phone .due{color:#ffb74d;font-weight:600}
+  .phone .sm{color:#9aa59d;font-size:6.5pt}
+  .phone .btn{display:inline-block;border:1px solid #7ee08a;color:#7ee08a;border-radius:4mm;padding:.6mm 2.2mm;margin-top:1.5mm;font-size:6.8pt}
+  .phone .fab{float:right;background:#1f6b2a;color:#d8f5d8;border-radius:3mm;padding:1.5mm 3mm;font-weight:600}
+  .phone.red .scr{background:#c40000;color:#fff;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:2.5mm}
+  .phone.dark .scr{background:#8E1B10;color:#fff;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:2mm}
+  .phone .big{font-size:12pt;font-weight:800}
+  .phone .med{font-size:11pt;font-weight:700;color:#ffe082}
+  .phone .wbtn{border:1px solid #fff;border-radius:4mm;padding:1mm;font-size:6.8pt}
+  .phone .wfill{background:#fff;color:#8E1B10;border-radius:4mm;padding:1mm;font-size:6.8pt;font-weight:600}
+  .phone .toast{background:#323232;color:#fff;border-radius:2mm;padding:2mm;margin-top:3mm;font-size:7pt}
+  .phone .issue{background:#5a2320;color:#ffdad5;border-radius:2mm;padding:2mm;margin-bottom:2mm;display:flex;justify-content:space-between;gap:2mm;font-size:6.6pt}
+  .phone .issue b{color:#ffb4a9;white-space:nowrap}
+  .cap{font-size:8.5pt;color:var(--muted);text-align:center;margin-top:2mm}
+
+  /* --- Portada --- */
+  .cover{background:linear-gradient(160deg,#00695C 0%,#00897B 55%,#26A69A 100%);color:#fff;padding:22mm 20mm}
+  .cover h1{font-size:34pt;margin-top:8mm}
+  .cover .sub{font-size:14pt;opacity:.92;margin-bottom:10mm}
+  .cover .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:5mm;margin:6mm 0 10mm}
+  .cover .flow div{background:rgba(255,255,255,.13);border-radius:4mm;padding:5mm 4mm;text-align:center}
+  .cover .flow svg{display:block;margin:0 auto 3mm}
+  .cover .flow b{display:block;font-size:12pt;margin-bottom:1mm}
+  .cover .flow span{font-size:9.5pt;opacity:.92}
+  .cover .qrrow{display:flex;gap:7mm;align-items:center;background:#fff;color:var(--ink);border-radius:4mm;padding:5mm 6mm}
+  .cover .qr{width:34mm;height:34mm;flex:none}
+  .cover .qr svg{width:100%;height:100%}
+  .cover .foot{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.35)}
+  .logo{display:flex;align-items:center;gap:3mm;font-weight:700;font-size:13pt}
+  .url{font-family:"DejaVu Sans Mono",monospace;font-size:8.3pt;word-break:break-all;color:var(--teal)}
+</style>
+</head>
+<body>
+
+<!-- ============ PORTADA ============ -->
+<section class="page cover">
+  <div class="logo">
+    <svg width="34" height="34" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#fff"/><path fill="#00796B" d="M17.6,30.4l8.5,-8.5l-4.2,-4.2a6,6 0,0 0,-8.5 8.5z"/><path fill="#FFB74D" d="M26.1,21.9l-8.5,8.5l4.2,4.2a6,6 0,0 0,8.5 -8.5z"/><path stroke="#00796B" stroke-width="2" stroke-linecap="round" fill="none" d="M31,14a5,5 0,0 1,3 3M32,10a10,10 0,0 1,6 6"/></svg>
+    MediTag
+  </div>
+  <h1>Guía de instalación<br>y uso</h1>
+  <div class="sub">Una app gratuita para Android que te ayuda a no olvidar la medicación… y a comprobar que de verdad te la has tomado.</div>
+
+  <div class="flow">
+    <div>
+      <svg width="64" height="54" viewBox="0 0 64 54"><rect x="6" y="10" width="52" height="36" rx="4" fill="#fff"/><rect x="6" y="10" width="52" height="9" fill="#B2DFDB"/><circle cx="32" cy="32" r="8" fill="#FFB74D"/><path d="M28 32h8M32 28v8" stroke="#fff" stroke-width="2"/></svg>
+      <b>1. Pega</b><span>una pegatina NFC en la caja de cada medicamento.</span>
+    </div>
+    <div>
+      <svg width="64" height="54" viewBox="0 0 64 54"><rect x="8" y="22" width="30" height="22" rx="3" fill="#fff"/><circle cx="23" cy="33" r="5" fill="#FFB74D"/><rect x="34" y="4" width="20" height="36" rx="4" fill="#263238" transform="rotate(18 44 22)"/><path d="M50 8a8 8 0 0 1 6 6M52 3a14 14 0 0 1 9 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <b>2. Acerca el móvil</b><span>cuando te la tomes. La toma queda apuntada.</span>
+    </div>
+    <div>
+      <svg width="64" height="54" viewBox="0 0 64 54"><path d="M32 6c-9 0-14 7-14 15v10l-5 6h38l-5-6V21c0-8-5-15-14-15z" fill="#fff"/><circle cx="32" cy="43" r="4" fill="#fff"/><path d="M8 14a14 14 0 0 1 6-8M56 14a14 14 0 0 0-6-8" stroke="#FFCDD2" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      <b>3. Si no, suena</b><span>una alarma que no para hasta que acerques la pegatina.</span>
+    </div>
+  </div>
+
+  <div class="qrrow">
+    <div class="qr">{{QR}}</div>
+    <div>
+      <div style="font-weight:700;font-size:12pt;margin-bottom:1.5mm">Descarga la app</div>
+      <p style="margin-bottom:2mm">Apunta con la cámara del móvil a este código y toca el enlace que aparece. Si no puedes, escribe esta dirección en el navegador:</p>
+      <div class="url">github.com/hombrelobo2/meditag/releases</div>
+    </div>
+  </div>
+
+  <div style="margin-top:9mm;display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 8mm;font-size:10pt">
+    <div style="grid-column:1/-1;font-weight:700;font-size:11pt;margin-bottom:1mm">En esta guía</div>
+    <div>1 · Antes de empezar ……… 2</div><div>7 · Cuando suena la alarma ……… 7</div>
+    <div>2 · Instalar la app ……… 3</div><div>8 · Si no estabas cerca del móvil ……… 7</div>
+    <div>3 · La primera vez: permisos ……… 4</div><div>9 · Ajustes de la alarma ……… 8</div>
+    <div>4 · Añadir un medicamento ……… 5</div><div>10 · Copia de seguridad ……… 8</div>
+    <div>5 · Elegir la pauta ……… 6</div><div>11 · Historial y actualizaciones ……… 8</div>
+    <div>6 · El día a día ……… 6</div><div>12 · Si algo no funciona ……… 9</div>
+  </div>
+
+  <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.6 · noviembre 2026</span></div>
+</section>
+
+<!-- ============ ANTES DE EMPEZAR ============ -->
+<section class="page">
+  <h2><span class="n">1</span>Antes de empezar</h2>
+  <p class="lead">Ten esto a mano. Si te cuesta, pide ayuda a alguien de confianza: la instalación se hace <b>una sola vez</b> y lleva unos 15 minutos.</p>
+
+  <h3>Lo que necesitas</h3>
+  <ul class="check">
+    <li><b>Un móvil Android</b> (versión 8 o más moderna). <b>No funciona en iPhone.</b></li>
+    <li><b>Que el móvil tenga NFC.</b> Casi todos los actuales lo tienen. Es lo mismo que se usa para pagar acercando el móvil al datáfono.</li>
+    <li><b>Pegatinas NFC</b> del tipo <b>NTAG215</b>: una por cada medicamento. Se venden en tiendas de electrónica y por internet (busca «pegatinas NFC NTAG215»), en paquetes de 10 o más, por pocos euros.</li>
+    <li><b>Conexión a internet</b> (wifi o datos) solo para descargar la app. Después funciona sin internet.</li>
+  </ul>
+
+  <h3>¿Cómo sé si mi móvil tiene NFC?</h3>
+  <ol class="steps">
+    <li>Abre <b>Ajustes</b> (el icono de la rueda dentada).</li>
+    <li>Arriba, toca la <b>lupa</b> o «Buscar» y escribe <b>NFC</b>.</li>
+    <li>Si aparece una opción llamada NFC, tu móvil lo tiene. <b>Déjala activada</b> (el interruptor en azul o verde).</li>
+  </ol>
+  <div class="box tip"><span class="t">¿Dónde está el lector NFC?</span>
+    <p>Normalmente en el <b>centro de la parte de atrás</b> del móvil, a veces cerca de la cámara. Cuando acerques una pegatina, prueba a moverla despacio por la espalda del móvil hasta que vibre. Con la funda puesta suele funcionar.</p>
+  </div>
+
+  <h3>Cómo funciona, en una frase</h3>
+  <p>Para cada medicamento eliges <b>los días y la franja horaria</b> en que te lo tomas (por ejemplo, de 8:00 a 10:00). Cuando te lo tomes, acercas el móvil a la pegatina. Si llega el final de la franja y no lo has hecho, <b>suena una alarma</b> muy molesta hasta que acerques la pegatina.</p>
+
+  <div class="box warn"><span class="t">Importante</span>
+    <p>MediTag es una ayuda para acordarte, <b>no sustituye lo que te diga tu médico</b>. Las dosis y los horarios los decide tu médico o farmacéutico.</p>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>2</span></div>
+</section>
+
+<!-- ============ INSTALAR ============ -->
+<section class="page">
+  <h2><span class="n">2</span>Instalar la app</h2>
+  <p class="lead">MediTag no está en la Play Store: se descarga directamente. Por eso el móvil te hará un par de preguntas de seguridad. Es normal.</p>
+
+  <div class="cols">
+    <div>
+      <ol class="steps">
+        <li>Abre la <b>cámara</b> del móvil y apunta al <b>código QR</b> de la portada. Toca el enlace que aparece en la pantalla.<br><span style="color:var(--muted)">Si tu cámara no lee códigos QR, abre el navegador (Chrome) y escribe la dirección de la portada. Allí toca <b>MediTag.apk</b>.</span></li>
+        <li>Se descargará un archivo llamado <b>MediTag.apk</b>. Si el móvil pregunta si quieres descargarlo, toca <span class="ui">Descargar</span>.</li>
+        <li>Cuando termine, toca <span class="ui">Abrir</span> en el aviso de descarga.<br><span style="color:var(--muted)">Si se te escapa, abre la app <b>Archivos</b> → <b>Descargas</b> y toca MediTag.apk.</span></li>
+        <li>El móvil dirá que, por seguridad, no puede instalar apps de esta fuente. Toca <span class="ui">Ajustes</span> y activa <b>«Permitir de esta fuente»</b>. Vuelve atrás con la flecha.</li>
+        <li>Toca <span class="ui">Instalar</span>.</li>
+        <li>Si aparece un aviso de <b>Google Play Protect</b> diciendo que la app no es conocida, toca <span class="ui">Más detalles</span> y luego <span class="ui">Instalar de todos modos</span>.</li>
+        <li>Al terminar, toca <span class="ui">Abrir</span>. Verás el icono de MediTag (una cápsula verde) en tus aplicaciones.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>10:15</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#fff;color:#222;min-height:80mm">
+          <div style="font-size:9pt;font-weight:700;margin:6mm 0 3mm">¿Quieres instalar esta aplicación?</div>
+          <div style="display:flex;gap:2mm;align-items:center;margin-bottom:6mm"><svg width="22" height="22" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="#00796B"/><path fill="#fff" d="M17.6,30.4l8.5,-8.5l-4.2,-4.2a6,6 0,0 0,-8.5 8.5z"/><path fill="#FFCC80" d="M26.1,21.9l-8.5,8.5l4.2,4.2a6,6 0,0 0,8.5 -8.5z"/></svg><b>MediTag</b></div>
+          <div style="text-align:right;color:#00796B;font-weight:700;font-size:8pt">CANCELAR &nbsp;&nbsp; <span style="border:1.5px solid #c62828;border-radius:2mm;padding:.5mm 1.5mm;color:#00796B">INSTALAR</span></div>
+        </div>
+      </div>
+      <div class="cap">El aspecto cambia según la marca del móvil, pero los botones se llaman parecido.</div>
+    </div>
+  </div>
+
+  <div class="box tip"><span class="t">¿Es seguro?</span>
+    <p>Sí. El aviso sale con cualquier app que no venga de la Play Store. MediTag no tiene anuncios, no pide datos personales y no envía nada a internet: todo se queda en tu móvil. Su código es público y cualquiera puede revisarlo.</p>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>3</span></div>
+</section>
+
+<!-- ============ PRIMERA VEZ: PERMISOS ============ -->
+<section class="page">
+  <h2><span class="n">3</span>La primera vez: dar permisos</h2>
+  <p class="lead">Para que la alarma suene siempre, aunque el móvil esté bloqueado o en silencio, la app necesita unos permisos. Te los pide con <b>avisos en rojo</b> arriba de la pantalla.</p>
+
+  <div class="cols">
+    <div>
+      <ol class="steps">
+        <li>Abre MediTag. Arriba verás uno o varios avisos rojos.</li>
+        <li>Toca el botón de la derecha del <b>primer aviso</b> (<span class="ui">Permitir</span>, <span class="ui">Activar</span> o <span class="ui">Quitar</span>).</li>
+        <li>El móvil abrirá una pantalla de ajustes o una pregunta. Toca <b>Permitir</b> o activa el interruptor de MediTag.</li>
+        <li>Vuelve a MediTag con la flecha <b>◁</b> de atrás.</li>
+        <li>Repite con cada aviso hasta que <b>no quede ninguno</b>.</li>
+      </ol>
+      <div class="box alert"><span class="t">El más importante: la batería</span>
+        <p>El aviso <b>«Quita la optimización de batería»</b> es el que más importa. Si no lo aceptas, el móvil puede «dormir» la app para ahorrar batería y la alarma no sonará. Cuando te pregunte, elige <b>Permitir</b> o <b>Sin restricciones</b>.</p>
+      </div>
+      <div class="box warn"><span class="t">Móviles Xiaomi, Redmi, Huawei, Oppo, Realme o Samsung</span>
+        <p>Estas marcas cierran apps por su cuenta. En <b>Ajustes → Aplicaciones → MediTag</b> busca <b>«Inicio automático»</b> y actívalo, y en <b>Batería</b> elige <b>«Sin restricciones»</b>. Si no lo encuentras, pide ayuda: merece la pena.</p>
+      </div>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>10:20</span><span>▮▮▮ ◔</span></div>
+        <div class="scr">
+          <div class="ttl">MediTag <span>🔔 Alarma</span></div>
+          <div class="issue">Sin permiso de notificaciones: la alarma no podrá mostrarse. <b>Permitir</b></div>
+          <div class="issue">Permite mostrar la alarma a pantalla completa. <b>Permitir</b></div>
+          <div class="issue">Quita la optimización de batería para que el sistema no bloquee la alarma. <b>Quitar</b></div>
+          <div class="sm" style="margin-top:4mm">Añade un medicamento, escanea la pegatina NFC que lleva pegada y elige su pauta…</div>
+          <div style="margin-top:14mm"><span class="fab">+ Añadir</span></div>
+        </div>
+      </div>
+      <div class="cap">Los avisos rojos desaparecen cuando das cada permiso.</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>4</span></div>
+</section>
+
+<!-- ============ AÑADIR MEDICAMENTO ============ -->
+<section class="page">
+  <h2><span class="n">4</span>Añadir un medicamento</h2>
+
+  <h3 style="margin-top:0">Primero, pega la pegatina</h3>
+  <p>Pégala en la <b>caja o el bote</b> que usas cada día, en una parte lisa. Evita pegarla sobre papel de aluminio o metal, porque no se leería. Si usas pastillero, puedes pegarla en el pastillero. Cada medicamento necesita su propia pegatina.</p>
+
+  <div class="cols">
+    <div>
+      <h3>Después, en la app</h3>
+      <ol class="steps">
+        <li>Toca <span class="ui">+ Añadir</span> (abajo a la derecha).</li>
+        <li>Escribe el <b>nombre</b> del medicamento, por ejemplo «Pastilla de la mañana».</li>
+        <li>Toca <span class="ui">Escanear</span> y <b>acerca la pegatina</b> a la parte de atrás del móvil. Notarás una vibración y aparecerá un código (como 04:3D:72:…). Eso significa que ya está unida.</li>
+        <li>En <b>Pauta</b>, elige cuándo te lo tomas (lo explicamos en la página siguiente). Lo normal es <span class="ui">Cada día</span>.</li>
+        <li>En <b>Rango horario</b>, toca <span class="ui">Desde</span> y elige la hora a partir de la que te lo puedes tomar. Toca <span class="ui">Hasta</span> y elige la hora límite.</li>
+        <li>Toca <span class="ui">Guardar</span> arriba a la derecha.</li>
+      </ol>
+      <div class="box tip"><span class="t">¿Qué franja horaria pongo?</span>
+        <p>Una franja cómoda, de 1 o 2 horas. Por ejemplo, si desayunas entre 8 y 9, pon de <b>8:00 a 10:00</b>. La alarma solo suena si a las 10:00 todavía no has acercado la pegatina.</p>
+      </div>
+      <p style="font-size:9.5pt;color:var(--muted)">Si te tomas el mismo medicamento <b>dos veces al día</b>, añádelo dos veces (por ejemplo «mañana» y «noche») con la misma pegatina y distinta franja.</p>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>10:30</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#151a17">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm"><span class="sm">Cancelar</span><b>Nuevo medicamento</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
+          <div style="border:1px solid #556;border-radius:1.5mm;padding:1.5mm;margin-bottom:2.5mm"><span class="sm">Nombre del medicamento</span><br>Pastilla de la mañana</div>
+          <div class="ok" style="font-size:6.8pt">Etiqueta NFC</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5mm">04:3D:72:18:CD:2A:81 <span class="btn" style="margin:0">Escanear</span></div>
+          <div class="ok" style="font-size:6.8pt">Pauta</div>
+          <div style="margin-bottom:2.5mm"><span class="btn" style="background:#2e4a33">✓ Cada día</span> <span class="btn" style="color:#aab;border-color:#556">Días de la semana</span> <span class="btn" style="color:#aab;border-color:#556">Cada N días</span></div>
+          <div class="ok" style="font-size:6.8pt">Rango horario de la toma</div>
+          <div><span class="btn">Desde 08:00</span> <span class="btn">Hasta 10:00</span></div>
+          <div class="sm" style="margin-top:2mm">Si a las 10:00 no has escaneado la pegatina, sonará la alarma.</div>
+        </div>
+      </div>
+      <div class="cap">Pantalla para añadir un medicamento.</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>5</span></div>
+</section>
+
+<!-- ============ PAUTAS + USO DIARIO ============ -->
+<section class="page">
+  <h2><span class="n">5</span>Elegir la pauta</h2>
+  <p>La pauta dice <b>qué días</b> te toca el medicamento. En la pantalla verás un calendario con los días marcados, para que compruebes que está bien antes de guardar.</p>
+  <table>
+    <tr><th style="width:38mm">Opción</th><th>Para qué sirve</th><th style="width:48mm">Ejemplo</th></tr>
+    <tr><td><b>Cada día</b></td><td>Todos los días.</td><td>Una pastilla cada mañana.</td></tr>
+    <tr><td><b>Días de la semana</b></td><td>Toca las letras de los días: L M X J V S D.</td><td>Solo de lunes a viernes.</td></tr>
+    <tr><td><b>Cada N días</b></td><td>Cada 2 días (días alternos), cada 3… Toca en el calendario el día de la primera toma.</td><td>Un día sí y otro no.</td></tr>
+    <tr><td><b>Fechas concretas</b></td><td>Toca en el calendario cada día que te toca.</td><td>Un tratamiento de 7 días.</td></tr>
+    <tr><td><b>A demanda</b></td><td>Sin horario ni alarma. Solo lleva la cuenta de cuándo te lo tomas.</td><td>Un medicamento «si lo necesitas».</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm"><span class="n">6</span>El día a día</h2>
+  <div class="cols">
+    <div>
+      <ol class="steps">
+        <li>Al empezar tu franja horaria, el móvil te avisa con una <b>notificación</b>: «Hora de tomar…».</li>
+        <li>Tómate el medicamento.</li>
+        <li><b>Desbloquea el móvil</b> y acerca la pegatina a la parte de atrás. No hace falta abrir la app.</li>
+        <li>Verás un mensaje: <b>«✔ Toma registrada»</b>. ¡Listo! Ese día ya no sonará la alarma.</li>
+      </ol>
+      <div class="box tip"><span class="t">Trucos</span>
+        <ul class="dots">
+          <li>Puedes registrarla desde <b>30 minutos antes</b> de que empiece la franja.</li>
+          <li>La mayoría de móviles solo leen pegatinas con la pantalla <b>encendida y desbloqueada</b>.</li>
+          <li>En la app, cada medicamento muestra su estado: <b>Pendiente</b>, <b>¡Toca ahora!</b> o <b>✔ Tomada hoy a las…</b></li>
+          <li>Si un día no te toca, al acercar la pegatina te dirá «Hoy no toca» y la próxima fecha.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>08:42</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:82mm">
+          <div class="ttl">MediTag <span>🔔 Alarma</span></div>
+          <div class="card"><div class="nm">Pastilla de la mañana</div><div class="sm">Cada día · 08:00–10:00</div><div class="ok" style="margin-top:1mm">✔ Tomada hoy a las 08:42</div></div>
+          <div class="card"><div class="nm">Pastilla de la noche</div><div class="sm">Cada día · 21:00–23:00</div><div style="margin-top:1mm;color:#9aa59d;font-weight:600">Pendiente · desde 21:00</div></div>
+          <div class="toast">✔ Toma registrada: Pastilla de la mañana a las 08:42</div>
+        </div>
+      </div>
+      <div class="cap">Así se ve después de acercar la pegatina.</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>6</span></div>
+</section>
+
+<!-- ============ ALARMA ============ -->
+<section class="page">
+  <h2><span class="n">7</span>Cuando suena la alarma</h2>
+  <div class="cols">
+    <div>
+      <p>Si llega la hora límite y no has acercado la pegatina, el móvil <b>pita muy fuerte, vibra</b> y la pantalla <b>parpadea en rojo</b>. Suena aunque el móvil esté en silencio. El botón de atrás no la apaga: está hecho así a propósito.</p>
+      <h3>Para pararla</h3>
+      <ol class="steps">
+        <li>Tómate el medicamento.</li>
+        <li>Desbloquea el móvil.</li>
+        <li>Acerca la pegatina. La alarma se para y la toma queda registrada.</li>
+      </ol>
+      <h3>Si hoy no debes tomarlo</h3>
+      <p>Por ejemplo, porque tu médico te lo ha retirado ese día: toca <span class="ui">Cancelar toma de…</span> y confirma. La alarma se para y queda apuntado en el historial que ese día se canceló. También puedes cancelar antes de que suene, desde la tarjeta del medicamento.</p>
+    </div>
+    <div>
+      <div class="phone red"><div class="bar" style="background:#101511"><span>10:00</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:92mm">
+          <div class="big">¡TOMA TU<br>MEDICACIÓN!</div>
+          <div class="med">Pastilla de la mañana</div>
+          <div style="font-size:7pt">Desbloquea el móvil y acerca la etiqueta NFC del medicamento a la parte trasera para detener la alarma.</div>
+          <div class="wbtn" style="margin-top:6mm">Cancelar toma de Pastilla de la mañana</div>
+        </div>
+      </div>
+      <div class="cap">Pantalla de alarma (parpadea en rojo).</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:7mm"><span class="n">8</span>Si no estabas cerca del móvil</h2>
+  <div class="cols">
+    <div>
+      <p>Si nadie para la alarma, se apaga sola pasado un rato (30 minutos, si no lo cambias) y <b>vuelve a sonar</b> más tarde, dos veces más. Si aun así no hay respuesta, la toma queda como <b>«No tomada»</b> y aparece una <b>pantalla de aviso</b>: lo primero que verás al coger el móvil.</p>
+      <div class="box alert"><span class="t">¿Me la tomo tarde?</span>
+        <p><b>Sigue lo que te haya dicho tu médico o farmacéutico.</b> Hay medicamentos que no conviene tomar tarde (por ejemplo, porque quitan el sueño) y <b>nunca debes tomar dos dosis juntas</b> para compensar. Si te la tomas, acerca la pegatina: quedará como «tomada con retraso».</p>
+      </div>
+    </div>
+    <div>
+      <div class="phone dark"><div class="bar" style="background:#101511"><span>12:05</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:66mm">
+          <div style="font-size:18pt">⚠</div>
+          <div class="big" style="font-size:10pt">No te has tomado la medicación</div>
+          <div class="med" style="font-size:9.5pt">Pastilla de la mañana</div>
+          <div class="wfill" style="margin-top:3mm">Desbloquear para escanear</div>
+          <div class="wbtn">Entendido</div>
+        </div>
+      </div>
+      <div class="cap">Aviso de toma no realizada.</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>7</span></div>
+</section>
+
+<!-- ============ AJUSTES, COPIA, ACTUALIZAR ============ -->
+<section class="page">
+  <h2><span class="n">9</span>Ajustes de la alarma</h2>
+  <p>Toca <span class="ui">🔔 Alarma</span>, arriba a la derecha. Cuando termines, toca <span class="ui">Guardar</span>.</p>
+  <table>
+    <tr><th style="width:44mm">Ajuste</th><th>Qué hace</th></tr>
+    <tr><td><b>Sonido</b></td><td>El pitido de la app (muy molesto, recomendado), un tono de alarma del móvil o una canción o audio tuyo.</td></tr>
+    <tr><td><b>Tiempo máximo sonando</b></td><td>Cuántos minutos suena antes de pararse sola. Escribe el número. <b>0</b> = no se para hasta acercar la pegatina.</td></tr>
+    <tr><td><b>Repetir cada / Veces</b></td><td>Si se para sola, cada cuántos minutos vuelve a sonar y cuántas veces. <b>0</b> = no repetir.</td></tr>
+    <tr><td><b>No molestar</b></td><td>Toca <span class="ui">Permitir acceso a No molestar</span> y activa MediTag para que suene aunque tengas el modo No molestar puesto.</td></tr>
+    <tr><td><b>🔔 Probar alarma</b></td><td>Hace sonar la alarma <b>para que la oigas</b>, sin tocar ninguna toma. Se para con <span class="ui">Detener prueba</span> o acercando cualquier pegatina. Úsalo el primer día para comprobar que todo va bien.</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm"><span class="n">10</span>Copia de seguridad y cambio de móvil</h2>
+  <p>Abajo del todo, en la pantalla principal, toca <span class="ui">Copia de seguridad</span>:</p>
+  <ul class="dots">
+    <li><span class="ui">Exportar a archivo…</span> guarda tus medicamentos y el historial en un archivo. Guárdalo en Drive o mándatelo por correo.</li>
+    <li><span class="ui">Importar desde archivo…</span> los recupera, por ejemplo en un móvil nuevo. <b>Sustituye</b> lo que haya en la app.</li>
+  </ul>
+  <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos.</p>
+
+  <h2 style="margin-top:8mm"><span class="n">11</span>Historial y actualizaciones</h2>
+  <ul class="dots">
+    <li>El botón <span class="ui">Historial</span> muestra todo lo que ha pasado: tomas, cancelaciones, alarmas sin respuesta… Útil para enseñárselo al médico.</li>
+    <li>Para <b>actualizar</b> la app, descárgala otra vez con el mismo código QR e instálala: se pone encima y <b>no pierdes nada</b>. En <span class="ui">Acerca de</span> ves qué versión tienes.</li>
+  </ul>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>8</span></div>
+</section>
+
+<!-- ============ PROBLEMAS ============ -->
+<section class="page">
+  <h2><span class="n">12</span>Si algo no funciona</h2>
+  <table>
+    <tr><th style="width:56mm">Problema</th><th>Qué hacer</th></tr>
+    <tr><td><b>No lee la pegatina</b></td><td>Comprueba que el <b>NFC está activado</b> y el móvil <b>desbloqueado</b>. Mueve la pegatina despacio por toda la espalda del móvil. Si tienes una funda gruesa o con metal o imanes, quítala.</td></tr>
+    <tr><td><b>Dice «Etiqueta no registrada»</b></td><td>Esa pegatina no está unida a ningún medicamento. Entra en el medicamento con <span class="ui">Editar</span> y toca <span class="ui">Escanear</span>.</td></tr>
+    <tr><td><b>La alarma no sonó</b></td><td>Revisa que no quede ningún <b>aviso rojo</b> en la app, sobre todo el de la batería. En Xiaomi, Huawei, Oppo, Realme o Samsung, activa el <b>inicio automático</b> (página 4). Haz una prueba con <span class="ui">🔔 Probar alarma</span>.</td></tr>
+    <tr><td><b>Suena aunque ya me la tomé</b></td><td>Seguramente no acercaste la pegatina o no llegó a leerse. Acércala ahora: la alarma se para y la toma queda apuntada.</td></tr>
+    <tr><td><b>Al instalar dice «conflicto con un paquete existente»</b></td><td>Tienes una versión antigua instalada de otra forma. Haz una copia de seguridad, desinstala MediTag, instala la nueva e importa la copia.</td></tr>
+    <tr><td><b>He perdido una pegatina</b></td><td>Pega una nueva, entra en el medicamento con <span class="ui">Editar</span>, toca <span class="ui">Escanear</span> y acércala.</td></tr>
+    <tr><td><b>Quiero pausar un medicamento</b></td><td>Usa el interruptor de su tarjeta: mientras esté apagado, no avisa ni suena.</td></tr>
+  </table>
+
+  <div class="box tip" style="margin-top:7mm"><span class="t">Consejos que ayudan</span>
+    <ul class="dots">
+      <li>Deja la caja con la pegatina <b>siempre en el mismo sitio</b>, junto a algo que hagas cada día (la cafetera, el cepillo de dientes…).</li>
+      <li>Haz una <b>prueba de alarma</b> el primer día y avisa a quien viva contigo de cómo suena.</li>
+      <li>Si te cuesta configurarla, pide ayuda en la Asociación o a alguien de confianza: solo hay que hacerlo una vez.</li>
+    </ul>
+  </div>
+
+  <div class="box warn"><span class="t">Recuerda</span>
+    <p>MediTag es una herramienta de apoyo. No da consejos médicos ni avisa a nadie si no te tomas la medicación. Ante cualquier duda sobre tu tratamiento, consulta a tu médico o farmacéutico.</p>
+  </div>
+
+  <p style="margin-top:7mm;font-size:9pt;color:var(--muted)">MediTag es software libre y gratuito (licencia GNU GPL v3). Código fuente, novedades y avisos de errores en <span class="url">github.com/hombrelobo2/meditag</span>. Esta guía se puede copiar y repartir libremente.</p>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>9</span></div>
+</section>
+
+</body>
+</html>
