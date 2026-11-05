@@ -69,18 +69,15 @@ object Backup {
 
     data class Pending(val meds: List<Medication>, val history: List<String>, val exportedAt: String)
 
-    fun csvName() = "meditag-historial-${LocalDate.now()}.csv"
+    fun sheetName() = "meditag-historial-${LocalDate.now()}.xlsx"
 
     /**
-     * Historial como hoja de cálculo (CSV con ';' y BOM para que Excel en español
-     * lo abra bien). Columnas: Fecha, Hora, Evento, Medicamento, Detalle.
+     * Historial como hoja de cálculo Excel (.xlsx), de más antiguo a más reciente.
+     * Columnas: Fecha, Hora, Evento, Medicamento, Detalle.
      */
-    fun exportCsv(ctx: Context, uri: Uri): String {
-        fun cell(v: String) = "\"" + v.replace("\"", "\"\"") + "\""
-        val sb = StringBuilder("\uFEFF")
-        sb.append(listOf("Fecha", "Hora", "Evento", "Medicamento", "Detalle").joinToString(";") { cell(it) }).append("\r\n")
-        val rows = MedRepo.history.value.reversed() // de más antiguo a más reciente
-        for (e in rows) {
+    fun exportSheet(ctx: Context, uri: Uri): String {
+        val entries = MedRepo.history.value.reversed()
+        val rows = entries.map { e ->
             val t = MedRepo.entryTime(e)
             val text = if (t != null) e.substringAfter(" · ") else e
             val event = text.substringBefore(": ", text)
@@ -90,15 +87,20 @@ object Backup {
                 detail = med.substringAfterLast(" (").removeSuffix(")")
                 med = med.substringBeforeLast(" (")
             }
-            sb.append(
-                listOf(
-                    t?.toLocalDate()?.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
-                    t?.toLocalTime()?.toString()?.take(5) ?: "",
-                    event, med, detail
-                ).joinToString(";") { cell(it) }
-            ).append("\r\n")
+            listOf(
+                t?.let { Xlsx.Date(it.toLocalDate()) } ?: Xlsx.Empty,
+                t?.let { Xlsx.Time(it.toLocalTime().withSecond(0).withNano(0)) } ?: Xlsx.Empty,
+                Xlsx.Text(event), Xlsx.Text(med), Xlsx.Text(detail),
+            )
         }
-        ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(sb.toString().toByteArray()) }
+        ctx.contentResolver.openOutputStream(uri, "wt")!!.use {
+            Xlsx.write(
+                it, "Historial",
+                header = listOf("Fecha", "Hora", "Evento", "Medicamento", "Detalle"),
+                widths = listOf(12, 7, 38, 26, 34),
+                rows = rows,
+            )
+        }
         return "Exportadas ${rows.size} entradas del historial"
     }
 
