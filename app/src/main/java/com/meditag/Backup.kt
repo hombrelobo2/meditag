@@ -69,6 +69,39 @@ object Backup {
 
     data class Pending(val meds: List<Medication>, val history: List<String>, val exportedAt: String)
 
+    fun csvName() = "meditag-historial-${LocalDate.now()}.csv"
+
+    /**
+     * Historial como hoja de cálculo (CSV con ';' y BOM para que Excel en español
+     * lo abra bien). Columnas: Fecha, Hora, Evento, Medicamento, Detalle.
+     */
+    fun exportCsv(ctx: Context, uri: Uri): String {
+        fun cell(v: String) = "\"" + v.replace("\"", "\"\"") + "\""
+        val sb = StringBuilder("\uFEFF")
+        sb.append(listOf("Fecha", "Hora", "Evento", "Medicamento", "Detalle").joinToString(";") { cell(it) }).append("\r\n")
+        val rows = MedRepo.history.value.reversed() // de más antiguo a más reciente
+        for (e in rows) {
+            val t = MedRepo.entryTime(e)
+            val text = if (t != null) e.substringAfter(" · ") else e
+            val event = text.substringBefore(": ", text)
+            var med = if (": " in text) text.substringAfter(": ") else ""
+            var detail = ""
+            if (med.endsWith(")") && " (" in med) {
+                detail = med.substringAfterLast(" (").removeSuffix(")")
+                med = med.substringBeforeLast(" (")
+            }
+            sb.append(
+                listOf(
+                    t?.toLocalDate()?.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) ?: "",
+                    t?.toLocalTime()?.toString()?.take(5) ?: "",
+                    event, med, detail
+                ).joinToString(";") { cell(it) }
+            ).append("\r\n")
+        }
+        ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(sb.toString().toByteArray()) }
+        return "Exportadas ${rows.size} entradas del historial"
+    }
+
     fun apply(ctx: Context, p: Pending) {
         MedRepo.all(ctx).forEach {
             AlarmScheduler.cancel(ctx, it.id)
@@ -142,7 +175,7 @@ fun ImportConfirmDialog(p: Backup.Pending, onConfirm: () -> Unit, onDismiss: () 
 
 /** Historial completo en pantalla aparte (la lista principal queda solo con los medicamentos). */
 @Composable
-fun HistoryDialog(history: List<String>, onDismiss: () -> Unit) {
+fun HistoryDialog(history: List<String>, onExport: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -153,6 +186,14 @@ fun HistoryDialog(history: List<String>, onDismiss: () -> Unit) {
                     )
                     TextButton(onClick = onDismiss) { Text("Cerrar") }
                 }
+                Text(
+                    "Se guarda el último año. Puedes exportarlo a una hoja de cálculo para enseñárselo a tu médico.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                if (history.isNotEmpty()) TextButton(
+                    onClick = onExport, modifier = Modifier.padding(horizontal = 8.dp)
+                ) { Text("📄 Exportar a hoja de cálculo") }
                 HorizontalDivider()
                 if (history.isEmpty()) {
                     Text("Todavía no hay nada registrado.", Modifier.padding(16.dp))

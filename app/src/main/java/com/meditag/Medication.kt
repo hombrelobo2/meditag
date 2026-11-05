@@ -184,7 +184,32 @@ object MedRepo {
     private const val PREFS = "meditag"
     private const val KEY_MEDS = "meds"
     private const val KEY_HISTORY = "history"
-    private const val MAX_HISTORY = 150
+    /** Se guarda un año de historial (y como mucho MAX_HISTORY entradas, por seguridad). */
+    private const val KEEP_DAYS = 365L
+    private const val MAX_HISTORY = 20000
+    private val STAMP = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+    private val OLD_STAMP = Regex("""^(\d{2})/(\d{2}) (\d{2}:\d{2}) · """)
+
+    /** Fecha y hora de una entrada ("dd/MM/yyyy HH:mm · texto"), o null si no se entiende. */
+    fun entryTime(entry: String): LocalDateTime? =
+        runCatching { LocalDateTime.parse(entry.substringBefore(" · "), STAMP) }.getOrNull()
+
+    /** Entradas de versiones anteriores ("dd/MM HH:mm · …", sin año): se les añade el año. */
+    private fun migrate(entry: String): String {
+        val m = OLD_STAMP.find(entry) ?: return entry
+        val (d, mo, hm) = m.destructured
+        val now = LocalDate.now()
+        var year = now.year
+        val date = runCatching { LocalDate.of(year, mo.toInt(), d.toInt()) }.getOrNull() ?: return entry
+        if (date > now) year -= 1
+        return "$d/$mo/$year $hm · " + entry.substring(m.range.last + 1)
+    }
+
+    /** Quita lo que tenga más de un año. */
+    private fun prune(list: List<String>): List<String> {
+        val limit = LocalDateTime.now().minusDays(KEEP_DAYS)
+        return list.filter { e -> entryTime(e)?.let { it >= limit } ?: true }.take(MAX_HISTORY)
+    }
 
     private val _meds = MutableStateFlow<List<Medication>>(emptyList())
     val meds: StateFlow<List<Medication>> = _meds.asStateFlow()
@@ -205,7 +230,7 @@ object MedRepo {
             val arr = JSONArray(p.getString(KEY_MEDS, "[]"))
             _meds.value = (0 until arr.length()).map { Medication.fromJson(arr.getJSONObject(it)) }
             val h = JSONArray(p.getString(KEY_HISTORY, "[]"))
-            _history.value = (0 until h.length()).map { h.getString(it) }
+            _history.value = prune((0 until h.length()).map { migrate(h.getString(it)) })
             loaded = true
         }
     }
@@ -229,7 +254,7 @@ object MedRepo {
     fun replaceAll(ctx: Context, meds: List<Medication>, history: List<String>) {
         init(ctx)
         _meds.value = meds.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
-        _history.value = history.take(MAX_HISTORY)
+        _history.value = prune(history.map(::migrate))
         persist(ctx)
         prefs(ctx).edit().putString(KEY_HISTORY, JSONArray(_history.value).toString()).apply()
     }
@@ -243,8 +268,8 @@ object MedRepo {
     @Synchronized
     fun log(ctx: Context, text: String) {
         init(ctx)
-        val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
-        _history.value = (listOf("$stamp · $text") + _history.value).take(MAX_HISTORY)
+        val stamp = LocalDateTime.now().format(STAMP)
+        _history.value = prune(listOf("$stamp · $text") + _history.value)
         prefs(ctx).edit().putString(KEY_HISTORY, JSONArray(_history.value).toString()).apply()
     }
 

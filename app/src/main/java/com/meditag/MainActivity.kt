@@ -135,6 +135,16 @@ class MainActivity : ComponentActivity() {
         }
 
     fun exportBackup() = exportLauncher.launch(Backup.suggestedName())
+
+    private val csvLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val msg = runCatching { Backup.exportCsv(this, uri) }
+                .getOrElse { "No se pudo exportar: ${it.message}" }
+            Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+        }
+
+    fun exportHistoryCsv() = csvLauncher.launch(Backup.csvName())
     fun importBackup() = importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
 
     fun confirmImport() {
@@ -342,7 +352,7 @@ fun MainScreen(act: MainActivity) {
     if (showSound) SoundDialog(act, onDismiss = { showSound = false })
     if (showAbout) AboutDialog(act, onDismiss = { showAbout = false })
     if (showBackup) BackupDialog(act, onDismiss = { showBackup = false })
-    if (showHistory) HistoryDialog(history, onDismiss = { showHistory = false })
+    if (showHistory) HistoryDialog(history, onExport = { act.exportHistoryCsv() }, onDismiss = { showHistory = false })
     act.pendingImport?.let { p ->
         ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
     }
