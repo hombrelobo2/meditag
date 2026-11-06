@@ -41,18 +41,26 @@ import androidx.compose.ui.unit.sp
 class MissedActivity : ComponentActivity() {
     private var nfc: NfcAdapter? = null
     private var message by mutableStateOf<String?>(null)
+    private val nfcWatcher = NfcWatcher(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 27) setShowWhenLocked(true)
         else @Suppress("DEPRECATION") window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
         nfc = NfcAdapter.getDefaultAdapter(this)
+        nfcWatcher.start()
         setContent { MediTagTheme { Screen() } }
     }
 
     override fun onResume() {
         super.onResume()
+        nfcWatcher.refresh()
         nfc?.enableReaderMode(this, { tag -> onTag(Nfc.tagId(tag)) }, Nfc.READER_FLAGS, null)
+    }
+
+    override fun onDestroy() {
+        nfcWatcher.stop()
+        super.onDestroy()
     }
 
     override fun onPause() {
@@ -100,6 +108,7 @@ class MissedActivity : ComponentActivity() {
                     "Si te la tomas ahora, desbloquea el móvil y acerca la pegatina para registrarla.",
                     color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center
                 )
+                NfcOffBanner(nfcWatcher, Color(0xFF8E1B10))
                 message?.let {
                     Text(it, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 }

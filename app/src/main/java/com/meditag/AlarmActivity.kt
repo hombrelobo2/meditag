@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 class AlarmActivity : ComponentActivity() {
     private var nfc: NfcAdapter? = null
     private var message by mutableStateOf<String?>(null)
+    private val nfcWatcher = NfcWatcher(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +61,7 @@ class AlarmActivity : ComponentActivity() {
         getSystemService(KeyguardManager::class.java)?.requestDismissKeyguard(this, null)
 
         nfc = NfcAdapter.getDefaultAdapter(this)
+        nfcWatcher.start()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 message = "Escanea la etiqueta del medicamento para detener la alarma"
@@ -70,7 +72,13 @@ class AlarmActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        nfcWatcher.refresh()
         nfc?.enableReaderMode(this, { tag -> onTag(Nfc.tagId(tag)) }, Nfc.READER_FLAGS, null)
+    }
+
+    override fun onDestroy() {
+        nfcWatcher.stop()
+        super.onDestroy()
     }
 
     override fun onPause() {
@@ -121,6 +129,7 @@ class AlarmActivity : ComponentActivity() {
                     else "Desbloquea el móvil y acerca la etiqueta NFC del medicamento a la parte trasera para detener la alarma.",
                     color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center
                 )
+                NfcOffBanner(nfcWatcher, Color(0xFFC40000))
                 message?.let {
                     Text(it, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 }
