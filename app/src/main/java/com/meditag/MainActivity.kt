@@ -266,6 +266,7 @@ fun MainScreen(act: MainActivity) {
     var editor by remember { mutableStateOf<Medication?>(null) }
     var showEditor by remember { mutableStateOf(false) }
     var confirmSkip by remember { mutableStateOf<Medication?>(null) }
+    var confirmDisable by remember { mutableStateOf<Medication?>(null) }
     var showSound by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
@@ -320,10 +321,8 @@ fun MainScreen(act: MainActivity) {
                     onEdit = { editor = med; showEditor = true },
                     onSkip = { confirmSkip = med },
                     onToggle = { enabled ->
-                        val m = med.copy(enabled = enabled)
-                        MedRepo.upsert(act, m)
-                        AlarmScheduler.schedule(act, m)
-                        if (!enabled) AlarmService.stop(med.id)
+                        // Desactivar pide confirmación (evita apagarlo por un toque sin querer)
+                        if (enabled) setEnabled(act, med, true) else confirmDisable = med
                     },
 
                 )
@@ -355,6 +354,14 @@ fun MainScreen(act: MainActivity) {
     if (showHistory) HistoryDialog(history, onExport = { act.exportHistorySheet() }, onDismiss = { showHistory = false })
     act.pendingImport?.let { p ->
         ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
+    }
+
+    confirmDisable?.let { med ->
+        ConfirmDisableDialog(
+            med = med,
+            onConfirm = { setEnabled(act, med, false); confirmDisable = null },
+            onDismiss = { confirmDisable = null },
+        )
     }
 
     confirmSkip?.let { med ->
@@ -428,4 +435,34 @@ fun MedCard(
             }
         }
     }
+}
+
+fun setEnabled(act: MainActivity, med: Medication, enabled: Boolean) {
+    val m = med.copy(enabled = enabled)
+    MedRepo.upsert(act, m)
+    AlarmScheduler.schedule(act, m)
+    if (!enabled) AlarmService.stop(med.id)
+    MedRepo.log(act, (if (enabled) "Activado: " else "Desactivado: ") + med.name)
+}
+
+/** Confirmación para desactivar; si no se responde en 5 s, se cierra sin desactivar. */
+@Composable
+fun ConfirmDisableDialog(med: Medication, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    var left by remember(med.id) { mutableStateOf(5) }
+    LaunchedEffect(med.id) {
+        while (left > 0) { delay(1000); left-- }
+        onDismiss()
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("¿Desactivar ${med.name}?") },
+        text = {
+            Text(
+                "Mientras esté desactivado no habrá recordatorios ni alarma de este medicamento.\n\n" +
+                    "Si no respondes, se cancela en $left s."
+            )
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Desactivar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("No ($left)") } }
+    )
 }

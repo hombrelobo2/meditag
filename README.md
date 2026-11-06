@@ -22,6 +22,7 @@ etiqueta, no hace falta grabar nada en ella.
 - **No molestar**: con el acceso concedido, la alarma suena aunque No molestar bloquee las alarmas
   (se cambia temporalmente a "solo alarmas" y se restaura al pararla).
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
+- **Desactivar un medicamento** con su interruptor pide confirmación; si no se responde en 5 s, sigue activo.
 - **Historial** de tomas, cancelaciones y cambios del último año, en una pantalla aparte (botón *Historial*), exportable a Excel (.xlsx) para el médico.
 - **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
 - **Acerca de**: versión de la app y enlace a este repositorio.
