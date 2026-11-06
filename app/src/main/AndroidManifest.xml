@@ -4,6 +4,8 @@
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
 
     <uses-permission android:name="android.permission.NFC" />
+    <!-- Solo para "Buscar actualizaciones" en Acerca de (descarga un archivo de versión) -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission

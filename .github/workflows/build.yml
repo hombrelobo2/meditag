@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+# Una compilación cada vez, para que no se pisen al publicar
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -48,7 +53,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          VNAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          VCODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          # Lo consulta la app en "Acerca de → Buscar actualizaciones"
+          printf '{"versionName":"%s","versionCode":%s}\n' "$VNAME" "$VCODE" > version.json
+          cat version.json
           gh release delete ultima --yes --cleanup-tag || true
-          gh release create ultima MediTag.apk \
-            --title "MediTag (última compilación)" \
+          gh release create ultima MediTag.apk version.json \
+            --title "MediTag $VNAME" \
             --notes "APK firmado, compilado desde ${GITHUB_SHA::7}. Descárgalo en el móvil e instálalo."

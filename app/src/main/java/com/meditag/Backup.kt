@@ -21,6 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,6 +42,47 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 const val REPO_URL = "https://github.com/hombrelobo2/meditag"
+const val APK_URL = "$REPO_URL/releases/download/ultima/MediTag.apk"
+private const val VERSION_URL = "$REPO_URL/releases/download/ultima/version.json"
+
+/** Comprueba en GitHub la última versión publicada. Solo descarga un archivo pequeño; no envía datos. */
+object UpdateCheck {
+    sealed interface Result
+    data class UpToDate(val name: String) : Result
+    data class Available(val name: String) : Result
+    data class Failed(val reason: String) : Result
+
+    suspend fun check(): Result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            var url = java.net.URL(VERSION_URL)
+            var conn: java.net.HttpURLConnection? = null
+            var hops = 0
+            while (true) { // sigue redirecciones (GitHub redirige a su CDN)
+                conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = 10_000; readTimeout = 10_000
+                    instanceFollowRedirects = true
+                    setRequestProperty("Accept", "application/json")
+                }
+                val code = conn!!.responseCode
+                if (code in 300..399 && hops++ < 5) {
+                    url = java.net.URL(url, conn!!.getHeaderField("Location")); conn!!.disconnect(); continue
+                }
+                if (code != 200) return@withContext Failed("respuesta $code de GitHub")
+                break
+            }
+            val c = conn!!
+            val o = JSONObject(c.inputStream.bufferedReader().use { it.readText() })
+            c.disconnect()
+            val remoteCode = o.getInt("versionCode")
+            val remoteName = o.optString("versionName", remoteCode.toString())
+            if (remoteCode > BuildConfig.VERSION_CODE) Available(remoteName) else UpToDate(BuildConfig.VERSION_NAME)
+        } catch (e: java.io.IOException) {
+            Failed("sin conexión")
+        } catch (e: Exception) {
+            Failed(e.message ?: "error desconocido")
+        }
+    }
+}
 
 /** Copia de seguridad en JSON: medicamentos (con pauta y estado) + historial. */
 object Backup {
@@ -117,6 +166,9 @@ object Backup {
 
 @Composable
 fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<UpdateCheck.Result?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Acerca de MediTag") },
@@ -126,6 +178,31 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
                 Text("Control de la toma de medicación con etiquetas NFC.")
                 Text("Software libre bajo licencia GNU GPL v3.", style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    enabled = !checking,
+                    onClick = {
+                        checking = true; result = null
+                        scope.launch { result = UpdateCheck.check(); checking = false }
+                    }
+                ) { Text(if (checking) "Comprobando…" else "Buscar actualizaciones") }
+                when (val r = result) {
+                    is UpdateCheck.UpToDate -> Text("✔ Tienes la última versión (${r.name}).", color = MaterialTheme.colorScheme.primary)
+                    is UpdateCheck.Available -> {
+                        Text("Hay una versión nueva: ${r.name}", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Descárgala e instálala encima: no se pierde nada. Por si acaso, haz antes una copia de seguridad.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Button(onClick = {
+                            runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(APK_URL))) }
+                        }) { Text("Descargar ${r.name}") }
+                    }
+                    is UpdateCheck.Failed -> Text(
+                        "No se pudo comprobar (${r.reason}). Revisa la conexión a internet.",
+                        color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall
+                    )
+                    null -> {}
+                }
                 TextButton(onClick = {
                     runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO_URL))) }
                 }) { Text("Código fuente en GitHub") }

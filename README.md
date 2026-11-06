@@ -25,7 +25,7 @@ etiqueta, no hace falta grabar nada en ella.
 - **Desactivar un medicamento** con su interruptor pide confirmación; si no se responde en 5 s, sigue activo.
 - **Historial** de tomas, cancelaciones y cambios del último año, en una pantalla aparte (botón *Historial*), exportable a Excel (.xlsx) para el médico.
 - **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
-- **Acerca de**: versión de la app y enlace a este repositorio.
+- **Acerca de**: versión de la app, enlace a este repositorio y **Buscar actualizaciones** (consulta `version.json` de la última release; es la única conexión a internet que hace la app, y solo al pulsar el botón).
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
 
