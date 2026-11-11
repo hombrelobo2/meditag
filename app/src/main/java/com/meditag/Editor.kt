@@ -40,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,8 +74,8 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
     val today = LocalDate.now()
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var tag by remember { mutableStateOf(initial?.tagId ?: "") }
-    var start by remember { mutableIntStateOf(initial?.startMin ?: (8 * 60)) }
-    var end by remember { mutableIntStateOf(initial?.endMin ?: (10 * 60)) }
+    // Tomas del día (franjas horarias)
+    val slots = remember { mutableStateListOf<Slot>().apply { addAll(initial?.slots ?: listOf(Slot(8 * 60, 10 * 60))) } }
     var mode by remember { mutableStateOf(initial?.mode ?: Mode.DAILY) }
     var weekdays by remember { mutableIntStateOf(initial?.weekdays ?: 0b0011111) }
     var interval by remember { mutableIntStateOf(initial?.intervalDays ?: 2) }
@@ -82,7 +83,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
     var dates by remember { mutableStateOf(initial?.dates ?: emptySet()) }
     var month by remember { mutableStateOf(YearMonth.now()) }
     var error by remember { mutableStateOf<String?>(null) }
-    var timeMsg by remember { mutableStateOf<String?>(null) }
+    var timeMsg by remember { mutableStateOf<Pair<Int, String>?>(null) } // (toma, mensaje)
     var confirmDelete by remember { mutableStateOf(false) }
     val waiting = act.tagCapture != null
 
@@ -90,32 +91,50 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
 
     // Vista previa: qué días tendrían toma con la pauta actual
     val preview = Medication(
-        id = 0, name = "", tagId = "", startMin = start, endMin = end, mode = mode,
+        id = 0, name = "", tagId = "", slots = slots.toList(), mode = mode,
         weekdays = weekdays, intervalDays = interval, anchorDate = anchor.toString(), dates = dates,
     )
 
     fun save() {
+        val sorted = slots.sortedBy { it.start }
+        val overlap = (1 until sorted.size).firstOrNull { sorted[it].start < sorted[it - 1].end }
         error = when {
             name.isBlank() -> "Escribe el nombre del medicamento"
             tag.isBlank() -> "Escanea la pegatina NFC del medicamento"
-            mode != Mode.ON_DEMAND && end - start < MIN_RANGE -> "La hora de fin debe ser al menos $MIN_RANGE min posterior a la de inicio"
+            mode != Mode.ON_DEMAND && sorted.any { it.end - it.start < MIN_RANGE } ->
+                "Cada toma debe durar al menos $MIN_RANGE minutos"
+            mode != Mode.ON_DEMAND && overlap != null ->
+                "Las tomas de ${sorted[overlap - 1].label} y ${sorted[overlap].label} se solapan. Cambia sus horas."
             mode == Mode.WEEKDAYS && weekdays == 0 -> "Elige al menos un día de la semana"
             mode == Mode.DATES && dates.none { it >= today.toString() } -> "Marca en el calendario al menos un día (de hoy en adelante)"
             else -> null
         }
         if (error != null) return
-        // Si el rango de hoy ya ha pasado al guardar, empieza mañana (para que no suene nada más guardar).
-        val nowMin = LocalTime.now().let { it.hour * 60 + it.minute }
-        val activeFrom = if (nowMin >= end) today.plusDays(1) else today
-        val base = initial ?: Medication(id = MedRepo.nextId(ctx), name = "", tagId = "", startMin = 0, endMin = 0)
+        val base = initial ?: Medication(id = MedRepo.nextId(ctx), name = "", tagId = "", slots = sorted)
+        val newDates = dates.filter { it >= today.minusDays(30).toString() }.toSet()
+        // Las tomas que no cambian conservan su estado de hoy (tomada, cancelada…)
+        val oldStates = initial?.todayStates().orEmpty()
+        val states = sorted.map { sl ->
+            initial?.slots?.indexOf(sl)?.takeIf { it >= 0 }?.let { oldStates.getOrNull(it) } ?: SlotState()
+        }
+        // Si cambian horarios o pauta, las tomas cuya hora ya pasó hoy no cuentan
+        // (así no suena nada nada más guardar).
+        val changed = initial == null || initial.slots != sorted || initial.mode != mode ||
+            initial.weekdays != weekdays || initial.intervalDays != interval ||
+            initial.anchorDate != anchor.toString() || initial.dates != newDates
         val med = base.copy(
-            name = name.trim(), tagId = tag, startMin = start, endMin = end,
+            name = name.trim(), tagId = tag, slots = sorted,
             mode = mode, weekdays = weekdays, intervalDays = interval,
-            anchorDate = anchor.toString(),
-            dates = dates.filter { it >= today.minusDays(30).toString() }.toSet(),
-            activeFrom = activeFrom.toString(),
+            anchorDate = anchor.toString(), dates = newDates,
+            activeSince = if (changed) System.currentTimeMillis() else base.activeSince,
+            stateDate = today.toString(), states = states,
         )
         MedRepo.upsert(ctx, med)
+        // Para las alarmas que ya no correspondan (toma borrada o que ya no cuenta)
+        for (k in 0 until MAX_SLOTS) {
+            val st = if (k < med.slots.size) med.slotStatus(k) else null
+            if (st != DoseStatus.DUE && st != DoseStatus.OVERDUE) AlarmService.stop(Occ.key(med.id, k))
+        }
         MedRepo.log(ctx, (if (initial == null) "Añadido: " else "Modificado: ") + "${med.name} (${med.describe()})")
         AlarmScheduler.schedule(ctx, med)
         onDismiss()
@@ -162,7 +181,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                     }
 
                     when (mode) {
-                        Mode.DAILY -> Hint("Una toma todos los días.")
+                        Mode.DAILY -> Hint("Todos los días.")
                         Mode.WEEKDAYS -> {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 WEEKDAY_LETTERS.forEachIndexed { i, l ->
@@ -204,42 +223,55 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                             }
                         )
 
-                        Section("Rango horario de la toma")
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = {
-                                pickTime(ctx, start) { picked ->
-                                    val s = picked.coerceAtMost(LAST_START)
-                                    val duration = (end - start).coerceAtLeast(60)
-                                    start = s
-                                    timeMsg = when {
-                                        picked > LAST_START -> "La hora de inicio máxima es ${fmt(LAST_START)}."
-                                        else -> null
+                        Section(if (slots.size == 1) "Horario de la toma" else "Tomas del día (${slots.size})")
+                        slots.forEachIndexed { idx, sl ->
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (slots.size > 1) Text("${idx + 1}.", fontWeight = FontWeight.Bold, modifier = Modifier.width(22.dp))
+                                OutlinedButton(onClick = {
+                                    pickTime(ctx, sl.start) { picked ->
+                                        val st = picked.coerceAtMost(LAST_START)
+                                        val duration = (sl.end - sl.start).coerceAtLeast(60)
+                                        var msg: String? = if (picked > LAST_START) "La hora de inicio máxima es ${fmt(LAST_START)}." else null
+                                        var en = sl.end
+                                        // Si el fin queda antes del inicio, se mueve para mantener la duración.
+                                        if (en < st + MIN_RANGE) {
+                                            en = (st + duration).coerceAtMost(LAST_MIN)
+                                            msg = (msg?.plus(" ") ?: "") + "Hora de fin ajustada a las ${fmt(en)}."
+                                        }
+                                        slots[idx] = Slot(st, en)
+                                        timeMsg = msg?.let { idx to it }
                                     }
-                                    // Si el fin queda antes del inicio, se mueve para mantener el rango.
-                                    if (end < s + MIN_RANGE) {
-                                        end = (s + duration).coerceAtMost(LAST_MIN)
-                                        timeMsg = (timeMsg?.plus(" ") ?: "") + "Hora de fin ajustada a las ${fmt(end)}."
+                                }, modifier = Modifier.weight(1f)) { Text("Desde ${fmt(sl.start)}") }
+                                OutlinedButton(onClick = {
+                                    pickTime(ctx, sl.end) { picked ->
+                                        if (picked < sl.start + MIN_RANGE) {
+                                            timeMsg = idx to ("La hora de fin no puede ser anterior a la de inicio (${fmt(sl.start)}). " +
+                                                "Elige una hora a partir de las ${fmt(sl.start + MIN_RANGE)}.")
+                                        } else {
+                                            slots[idx] = Slot(sl.start, picked)
+                                            timeMsg = null
+                                        }
                                     }
-                                }
-                            }, modifier = Modifier.weight(1f)) {
-                                Text("Desde ${fmt(start)}")
+                                }, modifier = Modifier.weight(1f)) { Text("Hasta ${fmt(sl.end)}") }
+                                if (slots.size > 1) TextButton(
+                                    onClick = { slots.removeAt(idx); timeMsg = null },
+                                    modifier = Modifier.width(44.dp)
+                                ) { Text("✕", color = MaterialTheme.colorScheme.error) }
                             }
-                            OutlinedButton(onClick = {
-                                pickTime(ctx, end) { picked ->
-                                    if (picked < start + MIN_RANGE) {
-                                        timeMsg = "La hora de fin no puede ser anterior a la de inicio (${fmt(start)}). " +
-                                            "Elige una hora a partir de las ${fmt(start + MIN_RANGE)}."
-                                    } else {
-                                        end = picked
-                                        timeMsg = null
-                                    }
-                                }
-                            }, modifier = Modifier.weight(1f)) {
-                                Text("Hasta ${fmt(end)}")
+                            timeMsg?.takeIf { it.first == idx }?.let {
+                                Text(it.second, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        timeMsg?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                        Hint("Si a las ${fmt(end)} no has escaneado la pegatina, sonará la alarma.")
+                        if (slots.size < MAX_SLOTS) OutlinedButton(onClick = {
+                            val last = slots.maxBy { it.end }
+                            val st = (last.end + 60).coerceAtMost(LAST_START)
+                            slots.add(Slot(st, (st + 60).coerceAtMost(LAST_MIN)))
+                            timeMsg = null
+                        }) { Text("+ Añadir toma") }
+                        Hint(
+                            if (slots.size == 1) "Si a las ${fmt(slots[0].end)} no has escaneado la pegatina, sonará la alarma."
+                            else "Con la misma pegatina se registra la toma que esté en curso. Cada una tiene su propia alarma al acabar su franja. Las franjas no pueden solaparse."
+                        )
                     }
 
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold) }
@@ -249,7 +281,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                             if (!confirmDelete) confirmDelete = true
                             else {
                                 AlarmScheduler.cancel(ctx, initial.id)
-                                AlarmService.stop(initial.id)
+                                for (k in 0 until MAX_SLOTS) AlarmService.stop(Occ.key(initial.id, k))
                                 MedRepo.delete(ctx, initial.id)
                                 MedRepo.log(ctx, "Eliminado: ${initial.name}")
                                 onDismiss()

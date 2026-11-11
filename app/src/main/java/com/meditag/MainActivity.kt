@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
@@ -265,7 +266,7 @@ fun MainScreen(act: MainActivity) {
     val ringing by AlarmService.ringing.collectAsState()
     var editor by remember { mutableStateOf<Medication?>(null) }
     var showEditor by remember { mutableStateOf(false) }
-    var confirmSkip by remember { mutableStateOf<Medication?>(null) }
+    var confirmSkip by remember { mutableStateOf<Pair<Medication, Int>?>(null) }
     var confirmDisable by remember { mutableStateOf<Medication?>(null) }
     var showSound by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -310,7 +311,7 @@ fun MainScreen(act: MainActivity) {
             if (meds.isEmpty()) item {
                 Text(
                     "Añade un medicamento, escanea la pegatina NFC que lleva pegada y elige su pauta (cada día, " +
-                        "días de la semana, cada N días, fechas concretas o a demanda) y su rango horario. " +
+                        "días de la semana, cada N días, fechas concretas o a demanda) y sus horarios de toma. " +
                         "Para registrar cada toma basta con acercar la pegatina al móvil.",
                     Modifier.padding(vertical = 24.dp), style = MaterialTheme.typography.bodyLarge
                 )
@@ -319,7 +320,7 @@ fun MainScreen(act: MainActivity) {
                 MedCard(
                     med = med, now = now,
                     onEdit = { editor = med; showEditor = true },
-                    onSkip = { confirmSkip = med },
+                    onSkip = { i -> confirmSkip = med to i },
                     onToggle = { enabled ->
                         // Desactivar pide confirmación (evita apagarlo por un toque sin querer)
                         if (enabled) setEnabled(act, med, true) else confirmDisable = med
@@ -364,13 +365,19 @@ fun MainScreen(act: MainActivity) {
         )
     }
 
-    confirmSkip?.let { med ->
+    confirmSkip?.let { (med, i) ->
         AlertDialog(
             onDismissRequest = { confirmSkip = null },
-            title = { Text("Cancelar toma de hoy") },
-            text = { Text("No sonará la alarma de ${med.name} hoy. Quedará registrado en el historial.") },
+            title = { Text("Cancelar toma") },
+            text = {
+                Text(
+                    "No sonará la alarma de ${med.name}" +
+                        (if (med.multi) " de ${med.slots[i].label}" else "") +
+                        " hoy. Quedará registrado en el historial."
+                )
+            },
             confirmButton = {
-                TextButton(onClick = { DoseManager.skipToday(act, med); confirmSkip = null }) { Text("Cancelar toma") }
+                TextButton(onClick = { DoseManager.skip(act, med, i); confirmSkip = null }) { Text("Cancelar toma") }
             },
             dismissButton = { TextButton(onClick = { confirmSkip = null }) { Text("Volver") } }
         )
@@ -380,27 +387,34 @@ fun MainScreen(act: MainActivity) {
 @Composable
 fun OneLine(text: String) = Text(text, maxLines = 1, softWrap = false)
 
+/** Texto y color del estado de la toma [i] de hoy. */
+fun slotLine(med: Medication, i: Int, now: LocalDateTime): Pair<String, Color> {
+    val slot = med.slots[i]
+    val st = med.state(i)
+    return when (med.slotStatus(i, now)) {
+        DoseStatus.PENDING -> "Pendiente · desde ${fmt(slot.start)}" to Color(0xFF757575)
+        DoseStatus.DUE -> "¡Toca ahora! Escanéala antes de las ${fmt(slot.end)}" to Color(0xFFEF6C00)
+        DoseStatus.OVERDUE ->
+            (if (med.repeatPending(i)) "Sin tomar · la alarma volverá a sonar a las ${hhmm(st.nextRepeatAt)}"
+            else "Fuera de plazo · alarma activa") to Color(0xFFC62828)
+        DoseStatus.TAKEN -> "✔ Tomada hoy a las ${hhmm(st.takenAt)}" to Color(0xFF2E7D32)
+        DoseStatus.SKIPPED -> "Toma de hoy cancelada" to Color(0xFF757575)
+        DoseStatus.MISSED -> "✖ No tomada · si la tomas tarde, escanea la pegatina" to Color(0xFFC62828)
+        DoseStatus.INACTIVE -> "No cuenta hoy (su hora ya había pasado al guardarla)" to Color(0xFF9E9E9E)
+        else -> "" to Color.Gray
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MedCard(
     med: Medication, now: LocalDateTime,
-    onEdit: () -> Unit, onSkip: () -> Unit, onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit, onSkip: (Int) -> Unit, onToggle: (Boolean) -> Unit,
 ) {
-    val status = med.status(now)
-    val (label, color) = when (status) {
-        DoseStatus.PENDING -> "Pendiente · desde ${fmt(med.startMin)}" to Color(0xFF757575)
-        DoseStatus.DUE -> "¡Toca ahora! Escanéala antes de las ${fmt(med.endMin)}" to Color(0xFFEF6C00)
-        DoseStatus.OVERDUE ->
-            (if (med.repeatPending()) "Sin tomar · la alarma volverá a sonar a las ${med.nextRepeatText()}"
-            else "Fuera de plazo · alarma activa") to Color(0xFFC62828)
-        DoseStatus.TAKEN -> "✔ Tomada hoy a las ${med.takenTimeText()}" to Color(0xFF2E7D32)
-        DoseStatus.SKIPPED -> "Toma de hoy cancelada" to Color(0xFF757575)
-        DoseStatus.MISSED -> "✖ No tomada hoy · si la tomas tarde, escanea la pegatina" to Color(0xFFC62828)
-        DoseStatus.NOT_TODAY -> {
-            val next = med.nextScheduled(now.toLocalDate().plusDays(1))
-            (if (next != null) "Hoy no toca · próxima: ${fmtDay(next)}" else "No quedan días programados") to Color(0xFF757575)
-        }
-        DoseStatus.ON_DEMAND -> {
+    // Estado general (no depende de la toma)
+    val general: Pair<String, Color>? = when {
+        !med.enabled -> "Desactivado" to Color(0xFF9E9E9E)
+        med.mode == Mode.ON_DEMAND -> {
             val n = med.todayCount()
             when {
                 n > 0 -> "Hoy: $n ${if (n == 1) "toma" else "tomas"} · última a las ${med.takenTimeText()}"
@@ -408,8 +422,13 @@ fun MedCard(
                 else -> "Sin tomas registradas · escanea al tomarla"
             } to Color(0xFF00796B)
         }
-        DoseStatus.DISABLED -> "Desactivado" to Color(0xFF9E9E9E)
+        !med.isScheduledOn(now.toLocalDate()) -> {
+            val next = med.nextScheduled(now.toLocalDate().plusDays(1))
+            (if (next != null) "Hoy no toca · próxima: ${fmtDay(next)}" else "No quedan días programados") to Color(0xFF757575)
+        }
+        else -> null
     }
+    val open = if (general == null) med.currentOpenSlot(now) else null
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -420,7 +439,24 @@ fun MedCard(
                 Switch(checked = med.enabled, onCheckedChange = onToggle)
             }
             Spacer(Modifier.height(6.dp))
-            Text(label, color = color, fontWeight = FontWeight.SemiBold)
+            if (general != null) {
+                Text(general.first, color = general.second, fontWeight = FontWeight.SemiBold)
+            } else if (!med.multi) {
+                val (t, c) = slotLine(med, 0, now)
+                Text(t, color = c, fontWeight = FontWeight.SemiBold)
+            } else {
+                // Una línea por toma
+                med.slots.indices.forEach { i ->
+                    val (t, c) = slotLine(med, i, now)
+                    Row(Modifier.padding(vertical = 1.dp)) {
+                        Text(
+                            med.slots[i].label, Modifier.width(96.dp),
+                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold
+                        )
+                        Text(t, color = c, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
             Text("Etiqueta ${med.tagId}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             // FlowRow: si no caben en una línea, los botones pasan a la siguiente en vez de partirse.
             FlowRow(
@@ -428,8 +464,10 @@ fun MedCard(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
                 modifier = Modifier.padding(top = 8.dp)
             ) {
-                if (status == DoseStatus.PENDING || status == DoseStatus.DUE || status == DoseStatus.OVERDUE) {
-                    OutlinedButton(onClick = onSkip) { OneLine("Cancelar toma") }
+                if (open != null) {
+                    OutlinedButton(onClick = { onSkip(open) }) {
+                        OneLine(if (med.multi) "Cancelar toma de ${fmt(med.slots[open].start)}" else "Cancelar toma")
+                    }
                 }
                 TextButton(onClick = onEdit) { OneLine("Editar") }
             }
@@ -441,7 +479,7 @@ fun setEnabled(act: MainActivity, med: Medication, enabled: Boolean) {
     val m = med.copy(enabled = enabled)
     MedRepo.upsert(act, m)
     AlarmScheduler.schedule(act, m)
-    if (!enabled) AlarmService.stop(med.id)
+    if (!enabled) for (i in med.slots.indices) AlarmService.stop(Occ.key(med.id, i))
     MedRepo.log(act, (if (enabled) "Activado: " else "Desactivado: ") + med.name)
 }
 

@@ -41,26 +41,34 @@ class AlarmService : Service() {
     companion object {
         private const val ACTION_START = "com.meditag.START_ALARM"
         private val _ringing = MutableStateFlow<Set<Int>>(emptySet())
-        /** IDs de medicamentos cuya alarma está sonando. */
+        /** Tomas cuya alarma está sonando, como claves [Occ.key] (medicamento, toma). */
         val ringing: StateFlow<Set<Int>> = _ringing.asStateFlow()
 
-        /** ID reservado para la alarma de prueba (no corresponde a ningún medicamento). */
+        /** Clave reservada para la alarma de prueba (no corresponde a ningún medicamento). */
         const val TEST_ID = 0
 
         fun startTest(ctx: Context) = start(ctx, TEST_ID)
 
-        fun start(ctx: Context, medId: Int) {
+        fun start(ctx: Context, key: Int) {
             ContextCompat.startForegroundService(
                 ctx,
                 Intent(ctx, AlarmService::class.java)
                     .setAction(ACTION_START)
-                    .putExtra(AlarmScheduler.EXTRA_ID, medId)
+                    .putExtra(AlarmScheduler.EXTRA_KEY, key)
             )
         }
 
-        fun stop(medId: Int) = _ringing.update { it - medId }
+        fun stop(key: Int) = _ringing.update { it - key }
 
-        /** Momento en que empezó a sonar cada medicamento (para la duración máxima). */
+        /** Nombre legible de lo que suena, p.ej. "Ibuprofeno (14:00–16:00)". */
+        fun label(ctx: Context, key: Int): String? {
+            if (key == TEST_ID) return "Prueba de alarma"
+            val med = MedRepo.get(ctx, Occ.medId(key)) ?: return null
+            val i = Occ.slot(key)
+            return if (i in med.slots.indices) med.name + med.slotSuffix(i) else null
+        }
+
+        /** Momento en que empezó a sonar cada toma (para la duración máxima). */
         private val ringSince = java.util.concurrent.ConcurrentHashMap<Int, Long>()
     }
 
@@ -79,12 +87,14 @@ class AlarmService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent == null) {
             // El sistema reinició el servicio: recuperamos las tomas fuera de plazo.
-            val overdue = MedRepo.all(this)
-                .filter { it.status() == DoseStatus.OVERDUE && !it.repeatPending() }.map { it.id }
+            val overdue = MedRepo.all(this).flatMap { m ->
+                m.slots.indices.filter { m.slotStatus(it) == DoseStatus.OVERDUE && !m.repeatPending(it) }
+                    .map { Occ.key(m.id, it) }
+            }
             _ringing.update { it + overdue }
         } else {
-            val id = intent.getIntExtra(AlarmScheduler.EXTRA_ID, -1)
-            if (id == TEST_ID || MedRepo.get(this, id) != null) _ringing.update { it + id }
+            val key = intent.getIntExtra(AlarmScheduler.EXTRA_KEY, -1)
+            if (key >= 0 && label(this, key) != null) _ringing.update { it + key }
         }
 
         val nowMs = System.currentTimeMillis()
@@ -124,8 +134,7 @@ class AlarmService : Service() {
     }
 
     private fun goForeground() {
-        val names = (MedRepo.all(this).filter { it.id in _ringing.value }.map { it.name } +
-            (if (TEST_ID in _ringing.value) listOf("Prueba de alarma") else emptyList()))
+        val names = _ringing.value.sorted().mapNotNull { label(this, it) }
             .joinToString().ifBlank { "Medicación" }
         val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else 0
         ServiceCompat.startForeground(

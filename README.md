@@ -5,7 +5,8 @@ al móvil la pegatina NFC pegada al medicamento. Solo se usa el **UID** de la
 etiqueta, no hace falta grabar nada en ella.
 
 ## Funciones
-- **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y **rango horario** (desde / hasta).
+- **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y una o varias **tomas al día** (franjas desde / hasta, con *+ Añadir toma*; no pueden solaparse).
+- **Varias tomas con una sola pegatina**: al escanear se registra la toma en curso (o la que empieza en 30 min); cada toma tiene su recordatorio, su alarma, su cancelación y su línea de estado.
 - **Pautas**: cada día · días de la semana (L–D) · cada N días (días alternos = 2) · fechas concretas
   marcadas en un calendario · **a demanda** (sin horario ni alarma: cada escaneo registra una toma y se cuentan las del día).
 - **Ajustes de la alarma** (botón 🔔 Alarma): sonido: pitido estridente por defecto, un tono de alarma del móvil o cualquier archivo de audio.
@@ -49,7 +50,6 @@ todos; en Xiaomi/Huawei/Samsung conviene además permitir el *inicio automático
 - La mayoría de móviles **solo leen NFC con la pantalla desbloqueada**; la alarma pide desbloquear.
 - La antena NFC suele estar en el centro de la parte trasera.
 - Rangos que cruzan la medianoche (p.ej. 23:00–01:00) no están soportados; usa 23:00–23:59.
-- Para varias tomas al día del mismo medicamento, añádelo varias veces con la misma pegatina y distinto rango.
 - Si al guardar un medicamento ya ha pasado el rango de hoy, empieza a contar desde mañana (no suena nada más guardar).
 
 ## Estructura

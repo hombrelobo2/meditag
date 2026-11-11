@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-enum class DoseStatus { PENDING, DUE, OVERDUE, TAKEN, SKIPPED, MISSED, NOT_TODAY, ON_DEMAND, DISABLED }
+enum class DoseStatus { PENDING, DUE, OVERDUE, TAKEN, SKIPPED, MISSED, INACTIVE, NOT_TODAY, ON_DEMAND, DISABLED }
 
 /** Pauta de toma. */
 enum class Mode { DAILY, WEEKDAYS, INTERVAL, DATES, ON_DEMAND }
@@ -24,97 +24,150 @@ enum class Mode { DAILY, WEEKDAYS, INTERVAL, DATES, ON_DEMAND }
 val ES: Locale = Locale.forLanguageTag("es-ES")
 val WEEKDAY_LETTERS = listOf("L", "M", "X", "J", "V", "S", "D")
 
+/** Máximo de tomas (franjas) por medicamento. */
+const val MAX_SLOTS = 8
+
+/** Una franja horaria de toma. start / end = minutos desde las 00:00 (8:30 -> 510). */
+data class Slot(val start: Int, val end: Int) {
+    val label: String get() = "${fmt(start)}–${fmt(end)}"
+    val startTime: LocalTime get() = LocalTime.of(start / 60, start % 60)
+    val endTime: LocalTime get() = LocalTime.of(end / 60, end % 60)
+}
+
+/** Estado de una toma concreta en el día [Medication.stateDate]. */
+data class SlotState(
+    val takenAt: Long = 0L,      // epoch millis si se tomó
+    val skipped: Boolean = false, // cancelada
+    val missed: Boolean = false,  // la alarma acabó sin respuesta
+    val repeatsDone: Int = 0,     // repeticiones de alarma ya hechas
+    val nextRepeatAt: Long = 0L,  // próxima repetición programada
+) {
+    val done: Boolean get() = takenAt > 0 || skipped || missed
+
+    fun toJson(): JSONObject = JSONObject().put("takenAt", takenAt).put("skipped", skipped)
+        .put("missed", missed).put("repeatsDone", repeatsDone).put("nextRepeatAt", nextRepeatAt)
+
+    companion object {
+        fun fromJson(o: JSONObject) = SlotState(
+            o.optLong("takenAt"), o.optBoolean("skipped"), o.optBoolean("missed"),
+            o.optInt("repeatsDone"), o.optLong("nextRepeatAt"),
+        )
+    }
+}
+
+/** Clave compacta (medicamento, toma) para alarmas y notificaciones. */
+object Occ {
+    fun key(medId: Int, slot: Int) = medId * 16 + slot
+    fun medId(key: Int) = key / 16
+    fun slot(key: Int) = key % 16
+}
+
+private fun millisOf(t: LocalDateTime) = t.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+fun hhmm(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalTime()
+        .format(DateTimeFormatter.ofPattern("HH:mm"))
+
 /**
- * Un medicamento con su etiqueta NFC, su pauta y su ventana horaria.
- * startMin / endMin = minutos desde las 00:00 (p.ej. 8:30 -> 510).
+ * Un medicamento con su etiqueta NFC, su pauta (qué días) y una o varias tomas al día.
+ * El estado de cada toma se guarda solo para el día [stateDate] (hoy).
  */
 data class Medication(
     val id: Int,
     val name: String,
     val tagId: String,
-    val startMin: Int,
-    val endMin: Int,
+    val slots: List<Slot>,
     val enabled: Boolean = true,
     val mode: Mode = Mode.DAILY,
     val weekdays: Int = 0b1111111,          // bit 0 = lunes … bit 6 = domingo
     val intervalDays: Int = 2,              // para Mode.INTERVAL
     val anchorDate: String = LocalDate.now().toString(), // primer día de la serie "cada N días"
     val dates: Set<String> = emptySet(),    // para Mode.DATES (yyyy-MM-dd)
-    val activeFrom: String? = null,         // no hay tomas antes de este día
-    val takenDate: String? = null,          // yyyy-MM-dd del último día tomado
-    val takenAt: Long = 0L,                 // epoch millis de la última toma
-    val skippedDate: String? = null,        // yyyy-MM-dd del último día cancelado
+    val activeSince: Long = 0L,             // las tomas que acaban antes de esto no cuentan
+    val stateDate: String? = null,          // día al que se refieren [states]
+    val states: List<SlotState> = emptyList(),
+    val takenAt: Long = 0L,                 // última toma (cualquiera)
     val countDate: String? = null,          // a demanda: día del contador
     val count: Int = 0,                     // a demanda: tomas ese día
-    val missedDate: String? = null,         // día en que la alarma acabó sin respuesta
-    val repeatDate: String? = null,         // día al que se refieren las repeticiones
-    val repeatsDone: Int = 0,               // repeticiones de alarma ya hechas ese día
-    val nextRepeatAt: Long = 0L,            // epoch millis de la próxima repetición
 ) {
-    val start: LocalTime get() = LocalTime.of(startMin / 60, startMin % 60)
-    val end: LocalTime get() = LocalTime.of(endMin / 60, endMin % 60)
+    /** Para ordenar la lista. */
+    val startMin: Int get() = slots.minOfOrNull { it.start } ?: 0
+    val multi: Boolean get() = slots.size > 1
 
-    fun isScheduledOn(d: LocalDate): Boolean {
-        activeFrom?.let { if (d < LocalDate.parse(it)) return false }
-        return when (mode) {
-            Mode.DAILY -> true
-            Mode.WEEKDAYS -> weekdays and (1 shl (d.dayOfWeek.value - 1)) != 0
-            Mode.INTERVAL -> {
-                val diff = ChronoUnit.DAYS.between(LocalDate.parse(anchorDate), d)
-                diff >= 0 && diff % intervalDays.coerceAtLeast(1) == 0L
-            }
-            Mode.DATES -> d.toString() in dates
-            Mode.ON_DEMAND -> false
+    /** Texto que identifica una toma en mensajes ("" si solo hay una). */
+    fun slotSuffix(i: Int): String = if (multi && i in slots.indices) " (${slots[i].label})" else ""
+
+    fun isScheduledOn(d: LocalDate): Boolean = when (mode) {
+        Mode.DAILY -> true
+        Mode.WEEKDAYS -> weekdays and (1 shl (d.dayOfWeek.value - 1)) != 0
+        Mode.INTERVAL -> {
+            val diff = ChronoUnit.DAYS.between(LocalDate.parse(anchorDate), d)
+            diff >= 0 && diff % intervalDays.coerceAtLeast(1) == 0L
         }
+        Mode.DATES -> d.toString() in dates
+        Mode.ON_DEMAND -> false
     }
+
+    /** La toma [i] del día [d] cuenta (hay pauta ese día y no acabó antes de crearla/editarla). */
+    fun counts(d: LocalDate, i: Int): Boolean =
+        isScheduledOn(d) && millisOf(d.atTime(slots[i].endTime)) > activeSince
 
     /** Primer día con toma a partir de [from] (incluido), o null si no hay ninguno en ~1 año. */
     fun nextScheduled(from: LocalDate): LocalDate? =
         generateSequence(from) { it.plusDays(1) }.take(400).firstOrNull { isScheduledOn(it) }
 
-    fun isDoneOn(date: LocalDate): Boolean =
-        takenDate == date.toString() || skippedDate == date.toString() || missedDate == date.toString()
+    /** Estado de las tomas de hoy (vacío si [stateDate] es otro día). */
+    fun todayStates(): List<SlotState> {
+        val fresh = stateDate == LocalDate.now().toString()
+        return List(slots.size) { i -> if (fresh) states.getOrNull(i) ?: SlotState() else SlotState() }
+    }
 
-    /** Hay una repetición de alarma programada para más tarde hoy. */
-    fun repeatPending(now: Long = System.currentTimeMillis()): Boolean =
-        repeatDate == LocalDate.now().toString() && nextRepeatAt > now
+    fun state(i: Int): SlotState = todayStates().getOrElse(i) { SlotState() }
 
-    fun repeatsToday(): Int = if (repeatDate == LocalDate.now().toString()) repeatsDone else 0
+    /** Copia con el estado de hoy de la toma [i] cambiado. */
+    fun withState(i: Int, f: (SlotState) -> SlotState): Medication {
+        val list = todayStates().toMutableList()
+        list[i] = f(list[i])
+        return copy(stateDate = LocalDate.now().toString(), states = list)
+    }
 
-    fun nextRepeatText(): String =
-        Instant.ofEpochMilli(nextRepeatAt).atZone(ZoneId.systemDefault()).toLocalTime()
-            .format(DateTimeFormatter.ofPattern("HH:mm"))
+    fun repeatPending(i: Int, now: Long = System.currentTimeMillis()): Boolean = state(i).nextRepeatAt > now
 
-    fun status(now: LocalDateTime = LocalDateTime.now()): DoseStatus {
-        val todayDate = now.toLocalDate()
-        val today = todayDate.toString()
+    fun slotStatus(i: Int, now: LocalDateTime = LocalDateTime.now()): DoseStatus {
+        val today = now.toLocalDate()
+        val st = state(i)
         val t = now.toLocalTime()
         return when {
             !enabled -> DoseStatus.DISABLED
             mode == Mode.ON_DEMAND -> DoseStatus.ON_DEMAND
-            takenDate == today -> DoseStatus.TAKEN
-            skippedDate == today -> DoseStatus.SKIPPED
-            missedDate == today -> DoseStatus.MISSED
-            !isScheduledOn(todayDate) -> DoseStatus.NOT_TODAY
-            t < start -> DoseStatus.PENDING
-            t < end -> DoseStatus.DUE
+            !isScheduledOn(today) -> DoseStatus.NOT_TODAY
+            st.takenAt > 0 -> DoseStatus.TAKEN
+            st.skipped -> DoseStatus.SKIPPED
+            st.missed -> DoseStatus.MISSED
+            !counts(today, i) -> DoseStatus.INACTIVE
+            t < slots[i].startTime -> DoseStatus.PENDING
+            t < slots[i].endTime -> DoseStatus.DUE
             else -> DoseStatus.OVERDUE
         }
     }
 
+    /** Índice de la primera toma de hoy aún por hacer (pendiente, en curso o fuera de plazo). */
+    fun currentOpenSlot(now: LocalDateTime = LocalDateTime.now()): Int? =
+        slots.indices.firstOrNull {
+            slotStatus(it, now).let { s -> s == DoseStatus.DUE || s == DoseStatus.OVERDUE || s == DoseStatus.PENDING }
+        }
+
     fun todayCount(): Int = if (countDate == LocalDate.now().toString()) count else 0
 
-    fun takenTimeText(): String =
-        Instant.ofEpochMilli(takenAt).atZone(ZoneId.systemDefault()).toLocalTime()
-            .format(DateTimeFormatter.ofPattern("HH:mm"))
+    fun takenTimeText(): String = hhmm(takenAt)
 
     fun takenDateTimeText(): String =
         Instant.ofEpochMilli(takenAt).atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
 
-    /** Texto corto de la pauta, p.ej. "L, X, V · 08:00–10:00". */
+    /** Texto corto de la pauta, p.ej. "L, X, V · 08:00–10:00, 21:00–23:00". */
     fun describe(): String {
-        val h = "${fmt(startMin)}–${fmt(endMin)}"
+        val h = slots.joinToString(", ") { it.label }
         return when (mode) {
             Mode.DAILY -> "Cada día · $h"
             Mode.WEEKDAYS ->
@@ -128,41 +181,66 @@ data class Medication(
 
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("name", name).put("tagId", tagId)
-        .put("startMin", startMin).put("endMin", endMin).put("enabled", enabled)
+        .put("slots", JSONArray().apply { slots.forEach { put(JSONObject().put("start", it.start).put("end", it.end)) } })
+        .put("enabled", enabled)
         .put("mode", mode.name).put("weekdays", weekdays).put("intervalDays", intervalDays)
         .put("anchorDate", anchorDate).put("dates", JSONArray(dates.sorted()))
-        .put("activeFrom", activeFrom ?: "")
-        .put("takenDate", takenDate ?: "").put("takenAt", takenAt)
-        .put("skippedDate", skippedDate ?: "")
+        .put("activeSince", activeSince)
+        .put("stateDate", stateDate ?: "")
+        .put("states", JSONArray().apply { states.forEach { put(it.toJson()) } })
+        .put("takenAt", takenAt)
         .put("countDate", countDate ?: "").put("count", count)
-        .put("missedDate", missedDate ?: "").put("repeatDate", repeatDate ?: "")
-        .put("repeatsDone", repeatsDone).put("nextRepeatAt", nextRepeatAt)
 
     companion object {
         fun fromJson(o: JSONObject): Medication {
             val d = o.optJSONArray("dates") ?: JSONArray()
+            val today = LocalDate.now().toString()
+            val sa = o.optJSONArray("slots")
+            val slots: List<Slot>
+            var stateDate: String? = o.optString("stateDate").ifBlank { null }
+            var states: List<SlotState>
+            var activeSince = o.optLong("activeSince", 0L)
+            if (sa != null && sa.length() > 0) {
+                slots = (0 until sa.length()).map { sa.getJSONObject(it).let { j -> Slot(j.getInt("start"), j.getInt("end")) } }
+                val st = o.optJSONArray("states") ?: JSONArray()
+                states = (0 until st.length()).map { SlotState.fromJson(st.getJSONObject(it)) }
+            } else {
+                // Formato anterior a la 1.8: una sola franja y estado "de hoy" en campos sueltos.
+                slots = listOf(Slot(o.optInt("startMin", 8 * 60), o.optInt("endMin", 10 * 60)))
+                fun isToday(k: String) = o.optString(k) == today
+                states = listOf(
+                    SlotState(
+                        takenAt = if (isToday("takenDate")) o.optLong("takenAt", 0L) else 0L,
+                        skipped = isToday("skippedDate"),
+                        missed = isToday("missedDate"),
+                        repeatsDone = if (isToday("repeatDate")) o.optInt("repeatsDone", 0) else 0,
+                        nextRepeatAt = if (isToday("repeatDate")) o.optLong("nextRepeatAt", 0L) else 0L,
+                    )
+                )
+                stateDate = today
+                o.optString("activeFrom").ifBlank { null }?.let {
+                    activeSince = runCatching {
+                        LocalDate.parse(it).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    }.getOrDefault(0L)
+                }
+            }
             return Medication(
                 id = o.getInt("id"),
                 name = o.getString("name"),
                 tagId = o.getString("tagId"),
-                startMin = o.getInt("startMin"),
-                endMin = o.getInt("endMin"),
+                slots = slots,
                 enabled = o.optBoolean("enabled", true),
                 mode = runCatching { Mode.valueOf(o.optString("mode", "DAILY")) }.getOrDefault(Mode.DAILY),
                 weekdays = o.optInt("weekdays", 0b1111111),
                 intervalDays = o.optInt("intervalDays", 2),
-                anchorDate = o.optString("anchorDate").ifBlank { LocalDate.now().toString() },
+                anchorDate = o.optString("anchorDate").ifBlank { today },
                 dates = (0 until d.length()).map { d.getString(it) }.toSet(),
-                activeFrom = o.optString("activeFrom").ifBlank { null },
-                takenDate = o.optString("takenDate").ifBlank { null },
+                activeSince = activeSince,
+                stateDate = stateDate,
+                states = states,
                 takenAt = o.optLong("takenAt", 0L),
-                skippedDate = o.optString("skippedDate").ifBlank { null },
                 countDate = o.optString("countDate").ifBlank { null },
                 count = o.optInt("count", 0),
-                missedDate = o.optString("missedDate").ifBlank { null },
-                repeatDate = o.optString("repeatDate").ifBlank { null },
-                repeatsDone = o.optInt("repeatsDone", 0),
-                nextRepeatAt = o.optLong("nextRepeatAt", 0L),
             )
         }
     }

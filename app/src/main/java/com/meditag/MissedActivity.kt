@@ -76,9 +76,12 @@ class MissedActivity : ComponentActivity() {
     @Composable
     private fun Screen() {
         val meds by MedRepo.meds.collectAsState()
-        val missed = meds.filter {
-            val s = it.status()
-            s == DoseStatus.MISSED || (s == DoseStatus.OVERDUE && it.repeatPending())
+        // Tomas de hoy sin tomar: con la alarma ya agotada o esperando a repetirse
+        val missed = meds.flatMap { m ->
+            m.slots.indices.filter {
+                val s = m.slotStatus(it)
+                s == DoseStatus.MISSED || (s == DoseStatus.OVERDUE && m.repeatPending(it))
+            }.map { m to it }
         }
         // Cuando ya no queda ninguna pendiente (escaneada o cancelada), se cierra sola.
         LaunchedEffect(missed.isEmpty()) {
@@ -96,11 +99,11 @@ class MissedActivity : ComponentActivity() {
                     if (missed.isEmpty()) "Todo en orden" else "No te has tomado la medicación",
                     color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                 )
-                missed.forEach {
-                    Text(it.name, color = Color(0xFFFFE082), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                missed.forEach { (m, i) ->
+                    Text(m.name, color = Color(0xFFFFE082), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     Text(
-                        "Toma de ${fmt(it.startMin)}–${fmt(it.endMin)}" +
-                            if (it.repeatPending()) " · la alarma volverá a sonar a las ${it.nextRepeatText()}" else "",
+                        "Toma de ${m.slots[i].label}" +
+                            if (m.repeatPending(i)) " · la alarma volverá a sonar a las ${hhmm(m.state(i).nextRepeatAt)}" else "",
                         color = Color.White, fontSize = 16.sp, textAlign = TextAlign.Center
                     )
                 }

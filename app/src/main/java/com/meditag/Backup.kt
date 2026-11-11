@@ -156,7 +156,7 @@ object Backup {
     fun apply(ctx: Context, p: Pending) {
         MedRepo.all(ctx).forEach {
             AlarmScheduler.cancel(ctx, it.id)
-            AlarmService.stop(it.id)
+            for (i in it.slots.indices) AlarmService.stop(Occ.key(it.id, i))
         }
         MedRepo.replaceAll(ctx, p.meds, p.history)
         MedRepo.log(ctx, "Importada copia de seguridad (${p.meds.size} medicamentos)")

@@ -27,8 +27,8 @@ object Notifications {
     const val CH_REMIND = "reminder"
     const val ALARM_NOTIF_ID = 1
     const val CH_ALARM_DND = "alarm_dnd"
-    fun reminderId(medId: Int) = 1000 + medId
-    fun missedId(medId: Int) = 2000 + medId
+    fun reminderId(medId: Int, slot: Int) = 100_000 + Occ.key(medId, slot)
+    fun missedId(medId: Int, slot: Int) = 200_000 + Occ.key(medId, slot)
 
     /** Canal de la alarma: si hay acceso a No molestar, uno que se lo salta. */
     fun alarmChannel(ctx: Context): String =
@@ -66,7 +66,7 @@ object Notifications {
         ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED
 
-    fun showReminder(ctx: Context, med: Medication) {
+    fun showReminder(ctx: Context, med: Medication, i: Int) {
         if (!canNotify(ctx)) return
         val pi = PendingIntent.getActivity(
             ctx, 0, Intent(ctx, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
@@ -74,19 +74,19 @@ object Notifications {
         val n = NotificationCompat.Builder(ctx, CH_REMIND)
             .setSmallIcon(R.drawable.ic_notif)
             .setContentTitle("Hora de tomar ${med.name}")
-            .setContentText("Escanea la etiqueta antes de las ${fmt(med.endMin)} o sonará la alarma")
+            .setContentText("Escanea la etiqueta antes de las ${fmt(med.slots[i].end)} o sonará la alarma")
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pi)
             .setAutoCancel(true)
             .build()
         try {
-            NotificationManagerCompat.from(ctx).notify(reminderId(med.id), n)
+            NotificationManagerCompat.from(ctx).notify(reminderId(med.id, i), n)
         } catch (_: SecurityException) { }
     }
 
     /** Aviso fijo de toma sin respuesta (se quita al escanear o cancelar la toma). */
-    fun showMissed(ctx: Context, med: Medication, text: String) {
+    fun showMissed(ctx: Context, med: Medication, i: Int, text: String) {
         if (!canNotify(ctx)) return
         // Pantalla de aviso: con la pantalla apagada se abre ya sobre el bloqueo (sin encenderla),
         // así es lo primero que se ve al coger el móvil.
@@ -99,7 +99,7 @@ object Notifications {
             .setSmallIcon(R.drawable.ic_notif)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(pi, true)
-            .setContentTitle("✖ Sin tomar: ${med.name}")
+            .setContentTitle("✖ Sin tomar: ${med.name}${med.slotSuffix(i)}")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -108,7 +108,7 @@ object Notifications {
             .setContentIntent(pi)
             .build()
         try {
-            NotificationManagerCompat.from(ctx).notify(missedId(med.id), n)
+            NotificationManagerCompat.from(ctx).notify(missedId(med.id, i), n)
         } catch (_: SecurityException) { }
     }
 

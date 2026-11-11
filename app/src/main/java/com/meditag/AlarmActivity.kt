@@ -95,11 +95,14 @@ class AlarmActivity : ComponentActivity() {
     private fun AlarmScreen() {
         val ringing by AlarmService.ringing.collectAsState()
         val meds by MedRepo.meds.collectAsState()
-        var confirm by remember { mutableStateOf<Medication?>(null) }
+        var confirm by remember { mutableStateOf<Pair<Medication, Int>?>(null) }
 
         LaunchedEffect(ringing) { if (ringing.isEmpty()) finish() }
 
-        val list = meds.filter { it.id in ringing }
+        // (medicamento, toma) que están sonando
+        val list = ringing.sorted().mapNotNull { k ->
+            meds.find { it.id == Occ.medId(k) }?.takeIf { Occ.slot(k) in it.slots.indices }?.let { it to Occ.slot(k) }
+        }
         val test = AlarmService.TEST_ID in ringing
         val flash = rememberInfiniteTransition(label = "flash")
         val bg by flash.animateColor(
@@ -120,8 +123,9 @@ class AlarmActivity : ComponentActivity() {
                     color = Color.White, fontSize = 34.sp,
                     fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                 )
-                list.forEach {
-                    Text(it.name, color = Color.Yellow, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                list.forEach { (med, i) ->
+                    Text(med.name, color = Color.Yellow, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    if (med.multi) Text("Toma de ${med.slots[i].label}", color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
                 }
                 Text(
                     if (test && list.isEmpty())
@@ -140,23 +144,23 @@ class AlarmActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                 ) { Text("Detener prueba") }
-                list.forEach { med ->
+                list.forEach { (med, i) ->
                     OutlinedButton(
-                        onClick = { confirm = med },
+                        onClick = { confirm = med to i },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
-                    ) { Text("Cancelar toma de ${med.name}") }
+                    ) { Text("Cancelar toma de ${med.name}${med.slotSuffix(i)}") }
                 }
             }
         }
 
-        confirm?.let { med ->
+        confirm?.let { (med, i) ->
             AlertDialog(
                 onDismissRequest = { confirm = null },
                 title = { Text("¿Cancelar la toma?") },
-                text = { Text("Se saltará la toma de hoy de ${med.name} y quedará registrado en el historial.") },
+                text = { Text("Se saltará esta toma de ${med.name}${med.slotSuffix(i)} y quedará registrado en el historial.") },
                 confirmButton = {
-                    TextButton(onClick = { DoseManager.cancelFromAlarm(this, med); confirm = null }) {
+                    TextButton(onClick = { DoseManager.cancelFromAlarm(this, med, i); confirm = null }) {
                         Text("Sí, cancelar toma")
                     }
                 },
