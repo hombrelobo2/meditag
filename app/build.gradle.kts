@@ -12,8 +12,8 @@ android {
         applicationId = "com.meditag"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "1.9"
+        versionCode = 16
+        versionName = "1.9.1"
     }
 
     // Firma de publicación: la clave privada NO está en el repositorio. En GitHub Actions

@@ -179,6 +179,12 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                             }
                         }
                         Hint("Al acercar la pegatina se abre un formulario para apuntar los valores. La toma cuenta al guardarlos.")
+                        if (Measure.BP in measures) Text(
+                            "ℹ La tensión se apunta en mmHg, tal como la marca el aparato: por ejemplo 120 y 80, no 12 y 8.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     OutlinedTextField(
                         value = name, onValueChange = { name = it },
