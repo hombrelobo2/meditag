@@ -30,9 +30,12 @@ etiqueta, no hace falta grabar nada en ella.
 - **📊 Informes**: pantalla con el historial del último año (las mediciones se guardan siempre) y dos botones para crear informes para el médico, eligiendo periodo y contenido:
   - **Excel** (.xlsx) con una hoja por tipo (Medicación, Complementos, Hábitos, Tensión, Saturación, Glucemia, Peso, Temperatura).
   - **PDF** con resumen de cumplimiento (hechas, con retraso, canceladas, no realizadas, %), incidencias y, para cada medición, resumen (media, mínimo, máximo), gráfica de evolución y tabla.
-- **📌 Anclar** elementos para que salgan siempre arriba de la lista.
+- **📌 Fijar** elementos para que salgan siempre arriba de la lista.
+- **Vista compacta / ampliada** (botón arriba): en la compacta cada elemento ocupa una línea con su estado de hoy; tocar la despliega. Se recuerda la elección.
+- **Aviso de pegatina compartida**: al guardar, si otro elemento con la misma pegatina coincide en día y franja, la app avisa (un escaneo marcaría los dos).
 - **Almacenamiento**: base de datos SQLite local para historial y mediciones (el historial de versiones anteriores se migra solo).
 - **Copia de seguridad**: exportar e importar a un archivo JSON los elementos (pauta, pegatina, estado), el historial y las mediciones. Se pueden importar copias de versiones anteriores.
+- **Copia automática** (desactivada por defecto): cada día o cada semana guarda la copia (y opcionalmente el Excel) en una carpeta elegida con el selector de Android, por ejemplo de Google Drive; conserva las N últimas. No inicia sesión en ningún servicio. Además, la copia de seguridad estándar de Android (`allowBackup`) está activada.
 - **Acerca de**: versión, resumen de funciones, enlace a este repositorio y **Buscar actualizaciones**. Además, **una vez por semana** (con internet, desactivable en Acerca de) la app consulta `version.json` y avisa con una notificación si hay versión nueva. Son las únicas conexiones a internet que hace la app y no envían ningún dato.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).

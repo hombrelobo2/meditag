@@ -145,15 +145,15 @@
     <div>1 · Antes de empezar ……… 2</div><div>10 · Cuando suena la alarma ……… 9</div>
     <div>2 · Instalar la app ……… 3</div><div>11 · Si no estabas cerca ……… 9</div>
     <div>3 · La primera vez: permisos ……… 4</div><div>12 · Ajustes de la alarma ……… 10</div>
-    <div>4 · Añadir un elemento ……… 5</div><div>13 · Copia de seguridad ……… 10</div>
+    <div>4 · Añadir un elemento ……… 5</div><div>13 · Copia de seguridad y automática ……… 10</div>
     <div>5 · Tipos de elemento ……… 6</div><div>14 · Mediciones ……… 11</div>
     <div>6 · La pauta: qué días toca ……… 6</div><div>15 · Informes para el médico ……… 12</div>
     <div>7 · Varias tomas al día ……… 7</div><div>16 · Actualizaciones ……… 13</div>
-    <div>8 · Fijar arriba (📌) ……… 7</div><div>17 · Si algo no funciona ……… 14</div>
+    <div>8 · Fijar arriba y vista compacta ……… 7</div><div>17 · Si algo no funciona ……… 14</div>
     <div>9 · El día a día ……… 8</div><div></div>
   </div>
 
-  <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.10.1 · noviembre 2026</span></div>
+  <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.11 · noviembre 2026</span></div>
 </section>
 
 <!-- ============ ANTES DE EMPEZAR ============ -->
@@ -373,7 +373,7 @@
       <div class="box tip"><span class="t">¿Cómo sabe qué toma apuntar?</span>
         <p>Al acercar la pegatina se apunta <b>la toma que está en su franja</b> (o la que empieza en menos de 30 minutos). Si no toca ninguna, te dice cuándo es la próxima. Cada toma tiene <b>su propio aviso y su propia alarma</b>.</p>
       </div>
-      <p style="font-size:9.5pt;color:var(--muted)">Las franjas no pueden solaparse: si una acaba a las 10:00, la siguiente debe empezar a las 10:00 o más tarde. Si te equivocas, la app te avisa al guardar.</p>
+      <p style="font-size:9.5pt;color:var(--muted)">Las franjas no pueden solaparse: si una acaba a las 10:00, la siguiente debe empezar a las 10:00 o más tarde. Si te equivocas, la app te avisa al guardar. También te avisa si <b>otro elemento con la misma pegatina</b> coincide el mismo día y a la misma hora (por ejemplo, dos turnos), porque un escaneo marcaría los dos.</p>
     </div>
     <div>
       <div class="phone"><div class="bar"><span>12:00</span><span>▮▮▮ ◔</span></div>
@@ -392,7 +392,7 @@
     </div>
   </div>
 
-  <h2 style="margin-top:7mm"><span class="n">8</span>Fijar elementos arriba (📌)</h2>
+  <h2 style="margin-top:7mm"><span class="n">8</span>Fijar arriba (📌) y vista compacta</h2>
   <div class="cols">
     <div>
       <p>Si tienes muchos elementos, puedes <b>fijar</b> los más importantes para que salgan <b>siempre arriba</b> de la lista:</p>
@@ -401,6 +401,7 @@
         <li>Para quitarlo, vuelve a tocarla.</li>
         <li>Los fijados se ordenan entre ellos por hora; el resto va debajo.</li>
       </ul>
+      <p><b>¿Muchos elementos?</b> Toca <span class="ui">☰ Compactar</span> arriba: cada uno ocupa <b>una línea</b> con su estado de hoy (✔ 08:42, ¡Toca ahora!, a las 21:00…). Toca una línea para verla completa, y <span class="ui">▤ Ampliar</span> para volver.</p>
     </div>
     <div>
       <div class="phone"><div class="bar"><span>12:05</span><span>▮▮▮ ◔</span></div>
@@ -527,6 +528,14 @@
     <li><span class="ui">Importar desde archivo…</span> los recupera, por ejemplo en un móvil nuevo. <b>Sustituye</b> lo que haya en la app.</li>
   </ul>
   <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos.</p>
+  <h3>Copia automática (por ejemplo, en Google Drive)</h3>
+  <ol class="steps">
+    <li>En <span class="ui">Copia de seguridad</span>, activa <b>Copia automática</b>.</li>
+    <li>Toca <span class="ui">Elegir…</span> y elige una carpeta. Si tienes la app de <b>Google Drive</b>, aparece en el menú del selector (☰): entra en tu Drive y elige o crea una carpeta, por ejemplo «MediTag».</li>
+    <li>Elige <b>cada día</b> o <b>cada semana</b>, si quieres también el <b>Excel para el médico</b>, y cuántas copias se conservan (las más antiguas se borran solas).</li>
+    <li>Toca <span class="ui">Hacer una copia ahora</span> para comprobarlo: en la carpeta aparecerá un archivo <b>meditag-copia-…json</b>.</li>
+  </ol>
+  <p style="font-size:9.5pt;color:var(--muted)">MediTag no inicia sesión en Google: solo escribe en la carpeta y Drive la sube. Viene desactivada porque son datos de salud: actívala solo si quieres.</p>
 
   <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>10</span></div>
 </section>
