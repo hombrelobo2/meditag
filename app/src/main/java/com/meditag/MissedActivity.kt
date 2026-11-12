@@ -70,6 +70,7 @@ class MissedActivity : ComponentActivity() {
 
     private fun onTag(id: String) = runOnUiThread {
         val r = DoseManager.onTagScanned(this, id)
+        if (r.measureItem != null) startActivity(MeasureActivity.intent(this, r.measureItem, r.measureSlot))
         message = if (r.ok) r.message else "✖ ${r.message}"
     }
 
@@ -96,11 +97,15 @@ class MissedActivity : ComponentActivity() {
             ) {
                 Text("⚠", color = Color.White, fontSize = 64.sp)
                 Text(
-                    if (missed.isEmpty()) "Todo en orden" else "No te has tomado la medicación",
+                    when {
+                        missed.isEmpty() -> "Todo en orden"
+                        missed.map { it.first.kind }.toSet().size == 1 -> missed.first().first.kind.missedTitle
+                        else -> "Tienes cosas sin hacer"
+                    },
                     color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                 )
                 missed.forEach { (m, i) ->
-                    Text(m.name, color = Color(0xFFFFE082), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("${m.kind.icon} ${m.name}", color = Color(0xFFFFE082), fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     Text(
                         "Toma de ${m.slots[i].label}" +
                             if (m.repeatPending(i)) " · la alarma volverá a sonar a las ${hhmm(m.state(i).nextRepeatAt)}" else "",
@@ -108,7 +113,7 @@ class MissedActivity : ComponentActivity() {
                     )
                 }
                 if (missed.isNotEmpty()) Text(
-                    "Si te la tomas ahora, desbloquea el móvil y acerca la pegatina para registrarla.",
+                    "Si lo haces ahora, desbloquea el móvil y acerca la pegatina para registrarlo.",
                     color = Color.White, fontSize = 17.sp, textAlign = TextAlign.Center
                 )
                 NfcOffBanner(nfcWatcher, Color(0xFF8E1B10))
@@ -117,6 +122,13 @@ class MissedActivity : ComponentActivity() {
                 }
             }
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                missed.filter { it.first.isMeasurement }.forEach { (m, i) ->
+                    Button(
+                        onClick = { startActivity(MeasureActivity.intent(this@MissedActivity, m.id, i)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFE082), contentColor = Color(0xFF8E1B10))
+                    ) { Text("Introducir valores de ${m.name}") }
+                }
                 if (missed.isNotEmpty()) Button(
                     onClick = { getSystemService(KeyguardManager::class.java)?.requestDismissKeyguard(this@MissedActivity, null) },
                     modifier = Modifier.fillMaxWidth(),

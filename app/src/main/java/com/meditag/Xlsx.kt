@@ -17,7 +17,11 @@ object Xlsx {
     data class Text(val v: String) : Cell
     data class Date(val v: LocalDate) : Cell
     data class Time(val v: LocalTime) : Cell
+    data class Num(val v: Double) : Cell
     data object Empty : Cell
+
+    /** Una hoja: nombre, títulos de columna, anchos (caracteres) y filas. */
+    data class Sheet(val name: String, val header: List<String>, val widths: List<Int>, val rows: List<List<Cell>>)
 
     // Estilos (índices de cellXfs): 0 normal, 1 negrita, 2 fecha, 3 hora
     private const val S_BOLD = 1
@@ -28,21 +32,29 @@ object Xlsx {
      * @param header títulos de columna (en negrita, fila fija)
      * @param widths ancho de cada columna en caracteres
      */
-    fun write(out: OutputStream, sheetName: String, header: List<String>, widths: List<Int>, rows: List<List<Cell>>) {
+    fun write(out: OutputStream, sheetName: String, header: List<String>, widths: List<Int>, rows: List<List<Cell>>) =
+        write(out, listOf(Sheet(sheetName, header, widths, rows)))
+
+    /** Libro con varias hojas (nombres de hasta 31 caracteres). */
+    fun write(out: OutputStream, sheets: List<Sheet>) {
+        require(sheets.isNotEmpty())
         ZipOutputStream(out).use { zip ->
             fun put(name: String, xml: String) {
                 zip.putNextEntry(ZipEntry(name))
                 zip.write(xml.toByteArray(Charsets.UTF_8))
                 zip.closeEntry()
             }
-            put("[Content_Types].xml", CONTENT_TYPES)
+            put("[Content_Types].xml", contentTypes(sheets.size))
             put("_rels/.rels", ROOT_RELS)
-            put("xl/workbook.xml", workbook(sheetName))
-            put("xl/_rels/workbook.xml.rels", WORKBOOK_RELS)
+            put("xl/workbook.xml", workbook(sheets.map { it.name }))
+            put("xl/_rels/workbook.xml.rels", workbookRels(sheets.size))
             put("xl/styles.xml", STYLES)
-            put("xl/worksheets/sheet1.xml", sheet(header, widths, rows))
+            sheets.forEachIndexed { i, sh -> put("xl/worksheets/sheet${i + 1}.xml", sheet(sh.header, sh.widths, sh.rows)) }
         }
     }
+
+    /** Nombre de hoja válido para Excel. */
+    private fun sheetName(n: String) = n.replace(Regex("[\\\\/?*\\[\\]:]"), " ").take(31).ifBlank { "Hoja" }
 
     private fun col(i: Int): String {
         var n = i + 1
@@ -71,6 +83,7 @@ object Xlsx {
     private fun cellXml(ref: String, c: Cell, bold: Boolean = false): String = when (c) {
         is Text -> "<c r=\"$ref\" t=\"inlineStr\"${if (bold) " s=\"$S_BOLD\"" else ""}><is><t xml:space=\"preserve\">${esc(c.v)}</t></is></c>"
         is Date -> "<c r=\"$ref\" s=\"$S_DATE\"><v>${ChronoUnit.DAYS.between(EPOCH, c.v)}</v></c>"
+        is Num -> "<c r=\"$ref\"><v>${java.math.BigDecimal(c.v).setScale(2, java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()}</v></c>"
         is Time -> "<c r=\"$ref\" s=\"$S_TIME\"><v>${String.format(java.util.Locale.ROOT, "%.8f", c.v.toSecondOfDay() / 86400.0)}</v></c>"
         Empty -> ""
     }
@@ -97,33 +110,36 @@ object Xlsx {
         return sb.toString()
     }
 
-    private fun workbook(name: String) =
-        """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
+    private fun workbook(names: List<String>): String {
+        val sheets = names.mapIndexed { i, n ->
+            "<sheet name=\"${esc(sheetName(n))}\" sheetId=\"${i + 1}\" r:id=\"rId${i + 1}\"/>"
+        }.joinToString("")
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
             """<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">""" +
-            """<sheets><sheet name="${esc(name.take(31))}" sheetId="1" r:id="rId1"/></sheets>""" +
-            "</workbook>"
+            "<sheets>$sheets</sheets></workbook>"
+    }
 
-    private const val CONTENT_TYPES =
+    private fun contentTypes(n: Int): String =
         """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
             """<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">""" +
             """<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>""" +
             """<Default Extension="xml" ContentType="application/xml"/>""" +
             """<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>""" +
-            """<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""" +
+            (1..n).joinToString("") { "<Override PartName=\"/xl/worksheets/sheet$it.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" } +
             """<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>""" +
             "</Types>"
+
+    private fun workbookRels(n: Int): String =
+        """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
+            """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">""" +
+            (1..n).joinToString("") { "<Relationship Id=\"rId$it\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet$it.xml\"/>" } +
+            "<Relationship Id=\"rId${n + 1}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
+            "</Relationships>"
 
     private const val ROOT_RELS =
         """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
             """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">""" +
             """<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>""" +
-            "</Relationships>"
-
-    private const val WORKBOOK_RELS =
-        """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""" +
-            """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">""" +
-            """<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>""" +
-            """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>""" +
             "</Relationships>"
 
     private const val STYLES =

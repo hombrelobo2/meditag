@@ -73,6 +73,8 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
     val ctx = LocalContext.current
     val today = LocalDate.now()
     var name by remember { mutableStateOf(initial?.name ?: "") }
+    var kind by remember { mutableStateOf(initial?.kind ?: Kind.MEDICATION) }
+    var measures by remember { mutableStateOf(initial?.measures ?: setOf(Measure.BP)) }
     var tag by remember { mutableStateOf(initial?.tagId ?: "") }
     // Tomas del día (franjas horarias)
     val slots = remember { mutableStateListOf<Slot>().apply { addAll(initial?.slots ?: listOf(Slot(8 * 60, 10 * 60))) } }
@@ -99,8 +101,9 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
         val sorted = slots.sortedBy { it.start }
         val overlap = (1 until sorted.size).firstOrNull { sorted[it].start < sorted[it - 1].end }
         error = when {
-            name.isBlank() -> "Escribe el nombre del medicamento"
-            tag.isBlank() -> "Escanea la pegatina NFC del medicamento"
+            name.isBlank() -> "Escribe el nombre"
+            kind == Kind.MEASUREMENT && measures.isEmpty() -> "Elige qué se mide"
+            tag.isBlank() -> "Escanea la pegatina NFC"
             mode != Mode.ON_DEMAND && sorted.any { it.end - it.start < MIN_RANGE } ->
                 "Cada toma debe durar al menos $MIN_RANGE minutos"
             mode != Mode.ON_DEMAND && overlap != null ->
@@ -124,6 +127,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
             initial.anchorDate != anchor.toString() || initial.dates != newDates
         val med = base.copy(
             name = name.trim(), tagId = tag, slots = sorted,
+            kind = kind, measures = if (kind == Kind.MEASUREMENT) measures else emptySet(),
             mode = mode, weekdays = weekdays, intervalDays = interval,
             anchorDate = anchor.toString(), dates = newDates,
             activeSince = if (changed) System.currentTimeMillis() else base.activeSince,
@@ -135,7 +139,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
             val st = if (k < med.slots.size) med.slotStatus(k) else null
             if (st != DoseStatus.DUE && st != DoseStatus.OVERDUE) AlarmService.stop(Occ.key(med.id, k))
         }
-        MedRepo.log(ctx, (if (initial == null) "Añadido: " else "Modificado: ") + "${med.name} (${med.describe()})")
+        MedRepo.logItem(ctx, if (initial == null) "Añadido" else "Modificado", med, null, med.describe())
         AlarmScheduler.schedule(ctx, med)
         onDismiss()
     }
@@ -146,7 +150,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                 Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = onDismiss) { Text("Cancelar") }
                     Text(
-                        if (initial == null) "Nuevo medicamento" else "Editar",
+                        if (initial == null) "Nuevo: ${kind.label.lowercase()}" else "Editar",
                         Modifier.weight(1f), textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -157,9 +161,38 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                     Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    Section("Tipo")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Kind.entries.forEach { k ->
+                            FilterChip(selected = kind == k, onClick = { kind = k }, label = { Text("${k.icon} ${k.label}") })
+                        }
+                    }
+                    if (kind == Kind.MEASUREMENT) {
+                        Section("Qué se mide")
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Measure.entries.forEach { me ->
+                                FilterChip(
+                                    selected = me in measures,
+                                    onClick = { measures = if (me in measures) measures - me else measures + me },
+                                    label = { Text(me.label) }
+                                )
+                            }
+                        }
+                        Hint("Al acercar la pegatina se abre un formulario para apuntar los valores. La toma cuenta al guardarlos.")
+                    }
                     OutlinedTextField(
                         value = name, onValueChange = { name = it },
-                        label = { Text("Nombre del medicamento") }, singleLine = true,
+                        label = { Text("Nombre") }, singleLine = true,
+                        placeholder = {
+                            Text(
+                                when (kind) {
+                                    Kind.MEDICATION -> "p.ej. Ibuprofeno 600"
+                                    Kind.SUPPLEMENT -> "p.ej. Magnesio"
+                                    Kind.MEASUREMENT -> "p.ej. Tensión"
+                                    Kind.HABIT -> "p.ej. Lavarme los dientes"
+                                }
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -203,7 +236,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                         }
                         Mode.DATES -> Hint("Toca en el calendario los días en los que hay toma (${dates.count { it >= today.toString() }} marcados).")
                         Mode.ON_DEMAND -> Hint(
-                            "Sin horario ni alarma. Cada vez que la tomes, escanea la pegatina y quedará registrada " +
+                            "Sin horario ni alarma. Cada vez que lo hagas, escanea la pegatina y quedará registrado " +
                                 "con la hora, para llevar la cuenta."
                         )
                     }
@@ -283,7 +316,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                                 AlarmScheduler.cancel(ctx, initial.id)
                                 for (k in 0 until MAX_SLOTS) AlarmService.stop(Occ.key(initial.id, k))
                                 MedRepo.delete(ctx, initial.id)
-                                MedRepo.log(ctx, "Eliminado: ${initial.name}")
+                                MedRepo.logItem(ctx, "Eliminado", initial)
                                 onDismiss()
                             }
                         }) {

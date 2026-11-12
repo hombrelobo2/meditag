@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -88,6 +89,7 @@ class AlarmActivity : ComponentActivity() {
 
     private fun onTag(id: String) = runOnUiThread {
         val r = DoseManager.onTagScanned(this, id)
+        if (r.measureItem != null) startActivity(MeasureActivity.intent(this, r.measureItem, r.measureSlot))
         message = if (r.ok) r.message else "✖ ${r.message}"
     }
 
@@ -118,19 +120,26 @@ class AlarmActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
+                val kinds = list.map { it.first.kind }.toSet()
                 Text(
-                    if (test && list.isEmpty()) "PRUEBA DE ALARMA" else "¡TOMA TU MEDICACIÓN!",
+                    when {
+                        test && list.isEmpty() -> "PRUEBA DE ALARMA"
+                        kinds.size == 1 -> kinds.first().alarmTitle
+                        else -> "¡TIENES ALGO PENDIENTE!"
+                    },
                     color = Color.White, fontSize = 34.sp,
                     fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                 )
                 list.forEach { (med, i) ->
-                    Text(med.name, color = Color.Yellow, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("${med.kind.icon} ${med.name}", color = Color.Yellow, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     if (med.multi) Text("Toma de ${med.slots[i].label}", color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center)
                 }
                 Text(
                     if (test && list.isEmpty())
                         "Acerca cualquier pegatina para comprobar que la lectura funciona, o pulsa «Detener prueba». No se registra ninguna toma."
-                    else "Desbloquea el móvil y acerca la etiqueta NFC del medicamento a la parte trasera para detener la alarma.",
+                    else if (list.any { it.first.isMeasurement })
+                        "Acerca la pegatina, o pulsa «Introducir valores», y guarda la medición para detener la alarma."
+                    else "Desbloquea el móvil y acerca la pegatina NFC a la parte trasera para detener la alarma.",
                     color = Color.White, fontSize = 18.sp, textAlign = TextAlign.Center
                 )
                 NfcOffBanner(nfcWatcher, Color(0xFFC40000))
@@ -144,6 +153,13 @@ class AlarmActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                 ) { Text("Detener prueba") }
+                list.filter { it.first.isMeasurement }.forEach { (med, i) ->
+                    Button(
+                        onClick = { startActivity(MeasureActivity.intent(this@AlarmActivity, med.id, i)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFFC40000))
+                    ) { Text("Introducir valores de ${med.name}") }
+                }
                 list.forEach { (med, i) ->
                     OutlinedButton(
                         onClick = { confirm = med to i },

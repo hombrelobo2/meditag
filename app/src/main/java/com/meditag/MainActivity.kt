@@ -140,12 +140,19 @@ class MainActivity : ComponentActivity() {
     private val sheetLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
             if (uri == null) return@registerForActivityResult
-            val msg = runCatching { Backup.exportSheet(this, uri) }
+            val o = pendingExport ?: ExportOptions(0, Kind.entries.toSet())
+            val msg = runCatching { Export.write(this, uri, o) }
                 .getOrElse { "No se pudo exportar: ${it.message}" }
             Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
         }
 
-    fun exportHistorySheet() = sheetLauncher.launch(Backup.sheetName())
+    /** Opciones elegidas en el diálogo, a la espera de que el usuario elija dónde guardar. */
+    private var pendingExport: ExportOptions? = null
+
+    fun exportReport(o: ExportOptions) {
+        pendingExport = o
+        sheetLauncher.launch(Export.fileName())
+    }
     fun importBackup() = importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
 
     fun confirmImport() {
@@ -212,7 +219,8 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Etiqueta leída: $id", Toast.LENGTH_SHORT).show()
         } else {
             val r = DoseManager.onTagScanned(this, id)
-            Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
+            if (r.measureItem != null) startActivity(MeasureActivity.intent(this, r.measureItem, r.measureSlot))
+            else Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -272,6 +280,7 @@ fun MainScreen(act: MainActivity) {
     var showAbout by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
+    var showExport by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
@@ -310,9 +319,9 @@ fun MainScreen(act: MainActivity) {
             }
             if (meds.isEmpty()) item {
                 Text(
-                    "Añade un medicamento, escanea la pegatina NFC que lleva pegada y elige su pauta (cada día, " +
-                        "días de la semana, cada N días, fechas concretas o a demanda) y sus horarios de toma. " +
-                        "Para registrar cada toma basta con acercar la pegatina al móvil.",
+                    "Añade un medicamento, complemento, medición (tensión, glucemia, peso…) o hábito. " +
+                        "Escanea la pegatina NFC que lleva pegada y elige su pauta y sus horarios. " +
+                        "Para registrarlo basta con acercar la pegatina al móvil.",
                     Modifier.padding(vertical = 24.dp), style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -352,7 +361,8 @@ fun MainScreen(act: MainActivity) {
     if (showSound) SoundDialog(act, onDismiss = { showSound = false })
     if (showAbout) AboutDialog(act, onDismiss = { showAbout = false })
     if (showBackup) BackupDialog(act, onDismiss = { showBackup = false })
-    if (showHistory) HistoryDialog(history, onExport = { act.exportHistorySheet() }, onDismiss = { showHistory = false })
+    if (showHistory) HistoryDialog(history, onExport = { showExport = true }, onDismiss = { showHistory = false })
+    if (showExport) ExportDialog(onExport = { act.exportReport(it) }, onDismiss = { showExport = false })
     act.pendingImport?.let { p ->
         ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
     }
@@ -397,9 +407,9 @@ fun slotLine(med: Medication, i: Int, now: LocalDateTime): Pair<String, Color> {
         DoseStatus.OVERDUE ->
             (if (med.repeatPending(i)) "Sin tomar · la alarma volverá a sonar a las ${hhmm(st.nextRepeatAt)}"
             else "Fuera de plazo · alarma activa") to Color(0xFFC62828)
-        DoseStatus.TAKEN -> "✔ Tomada hoy a las ${hhmm(st.takenAt)}" to Color(0xFF2E7D32)
-        DoseStatus.SKIPPED -> "Toma de hoy cancelada" to Color(0xFF757575)
-        DoseStatus.MISSED -> "✖ No tomada · si la tomas tarde, escanea la pegatina" to Color(0xFFC62828)
+        DoseStatus.TAKEN -> "✔ ${med.kind.doneState} hoy a las ${hhmm(st.takenAt)}" to Color(0xFF2E7D32)
+        DoseStatus.SKIPPED -> "Cancelada hoy" to Color(0xFF757575)
+        DoseStatus.MISSED -> (if (med.isMeasurement) "✖ No realizada · puedes medirte ahora" else "✖ No realizada · si lo haces tarde, escanea la pegatina") to Color(0xFFC62828)
         DoseStatus.INACTIVE -> "No cuenta hoy (su hora ya había pasado al guardarla)" to Color(0xFF9E9E9E)
         else -> "" to Color.Gray
     }
@@ -417,7 +427,7 @@ fun MedCard(
         med.mode == Mode.ON_DEMAND -> {
             val n = med.todayCount()
             when {
-                n > 0 -> "Hoy: $n ${if (n == 1) "toma" else "tomas"} · última a las ${med.takenTimeText()}"
+                n > 0 -> "Hoy: $n ${if (n == 1) "vez" else "veces"} · última a las ${med.takenTimeText()}"
                 med.takenAt > 0 -> "Última toma: ${med.takenDateTimeText()}"
                 else -> "Sin tomas registradas · escanea al tomarla"
             } to Color(0xFF00796B)
@@ -429,11 +439,14 @@ fun MedCard(
         else -> null
     }
     val open = if (general == null) med.currentOpenSlot(now) else null
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val readingsVersion by MedRepo.readingsVersion.collectAsState()
+    val last = if (med.isMeasurement) remember(med.id, readingsVersion) { Store.lastReading(ctx, med.id) } else null
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(med.name, style = MaterialTheme.typography.titleLarge)
+                    Text("${med.kind.icon} ${med.name}", style = MaterialTheme.typography.titleLarge)
                     Text(med.describe(), style = MaterialTheme.typography.bodyMedium)
                 }
                 Switch(checked = med.enabled, onCheckedChange = onToggle)
@@ -457,6 +470,11 @@ fun MedCard(
                     }
                 }
             }
+            if (med.isMeasurement) Text(
+                last?.let { "Última: ${it.summary()} · ${it.time.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm"))}" }
+                    ?: "Sin mediciones todavía",
+                style = MaterialTheme.typography.bodySmall
+            )
             Text("Etiqueta ${med.tagId}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             // FlowRow: si no caben en una línea, los botones pasan a la siguiente en vez de partirse.
             FlowRow(
@@ -464,6 +482,9 @@ fun MedCard(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
                 modifier = Modifier.padding(top = 8.dp)
             ) {
+                if (med.isMeasurement && med.enabled) {
+                    Button(onClick = { MeasureActivity.openManual(ctx, med) }) { OneLine("Añadir medición") }
+                }
                 if (open != null) {
                     OutlinedButton(onClick = { onSkip(open) }) {
                         OneLine(if (med.multi) "Cancelar toma de ${fmt(med.slots[open].start)}" else "Cancelar toma")
@@ -480,7 +501,7 @@ fun setEnabled(act: MainActivity, med: Medication, enabled: Boolean) {
     MedRepo.upsert(act, m)
     AlarmScheduler.schedule(act, m)
     if (!enabled) for (i in med.slots.indices) AlarmService.stop(Occ.key(med.id, i))
-    MedRepo.log(act, (if (enabled) "Activado: " else "Desactivado: ") + med.name)
+    MedRepo.logItem(act, if (enabled) "Activado" else "Desactivado", med)
 }
 
 /** Confirmación para desactivar; si no se responde en 5 s, se cierra sin desactivar. */

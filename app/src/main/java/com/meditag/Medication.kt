@@ -21,6 +21,40 @@ enum class DoseStatus { PENDING, DUE, OVERDUE, TAKEN, SKIPPED, MISSED, INACTIVE,
 /** Pauta de toma. */
 enum class Mode { DAILY, WEEKDAYS, INTERVAL, DATES, ON_DEMAND }
 
+/** Tipo de elemento. Cambia textos, iconos y cómo se exporta. */
+enum class Kind(
+    val label: String,
+    val icon: String,
+    val alarmTitle: String,
+    val missedTitle: String,
+    val doneWord: String,     // en el historial: "Tomada", "Hecho"…
+    val doneState: String,    // en la tarjeta: "✔ Tomada hoy a las…"
+) {
+    MEDICATION("Medicamento", "💊", "¡TOMA TU MEDICACIÓN!", "No te has tomado la medicación", "Tomada", "Tomada"),
+    SUPPLEMENT("Complemento", "🌿", "¡TOMA TU COMPLEMENTO!", "No te has tomado el complemento", "Tomado", "Tomado"),
+    MEASUREMENT("Medición", "🩺", "¡HORA DE MEDIRTE!", "No has hecho la medición", "Medición registrada", "Medido"),
+    HABIT("Hábito", "✅", "¡NO LO OLVIDES!", "Tienes algo pendiente", "Hecho", "Hecho");
+
+    /** Texto del recordatorio, p.ej. "Hora de tomar Ibuprofeno". */
+    fun reminder(name: String) = when (this) {
+        MEDICATION, SUPPLEMENT -> "Hora de tomar $name"
+        MEASUREMENT -> "Hora de medir: $name"
+        HABIT -> "Hora de: $name"
+    }
+}
+
+/** Qué se mide en un elemento de tipo Medición. */
+enum class Measure(val label: String) {
+    BP("Tensión y pulso"),
+    SPO2("Saturación de oxígeno"),
+    GLUCOSE("Glucemia"),
+    WEIGHT("Peso"),
+    TEMP("Temperatura"),
+}
+
+/** Momento de la glucemia. */
+val GLUCOSE_CONTEXTS = listOf("En ayunas", "Antes de comer", "Después de comer", "Otro momento")
+
 val ES: Locale = Locale.forLanguageTag("es-ES")
 val WEEKDAY_LETTERS = listOf("L", "M", "X", "J", "V", "S", "D")
 
@@ -89,7 +123,11 @@ data class Medication(
     val takenAt: Long = 0L,                 // última toma (cualquiera)
     val countDate: String? = null,          // a demanda: día del contador
     val count: Int = 0,                     // a demanda: tomas ese día
+    val kind: Kind = Kind.MEDICATION,
+    val measures: Set<Measure> = emptySet(), // solo para Kind.MEASUREMENT
 ) {
+    val isMeasurement: Boolean get() = kind == Kind.MEASUREMENT
+
     /** Para ordenar la lista. */
     val startMin: Int get() = slots.minOfOrNull { it.start } ?: 0
     val multi: Boolean get() = slots.size > 1
@@ -190,6 +228,8 @@ data class Medication(
         .put("states", JSONArray().apply { states.forEach { put(it.toJson()) } })
         .put("takenAt", takenAt)
         .put("countDate", countDate ?: "").put("count", count)
+        .put("kind", kind.name)
+        .put("measures", JSONArray(measures.map { it.name }))
 
     companion object {
         fun fromJson(o: JSONObject): Medication {
@@ -241,6 +281,10 @@ data class Medication(
                 takenAt = o.optLong("takenAt", 0L),
                 countDate = o.optString("countDate").ifBlank { null },
                 count = o.optInt("count", 0),
+                kind = runCatching { Kind.valueOf(o.optString("kind", "MEDICATION")) }.getOrDefault(Kind.MEDICATION),
+                measures = (o.optJSONArray("measures") ?: JSONArray()).let { m ->
+                    (0 until m.length()).mapNotNull { runCatching { Measure.valueOf(m.getString(it)) }.getOrNull() }.toSet()
+                },
             )
         }
     }
@@ -261,44 +305,29 @@ fun fmtDay(d: LocalDate): String {
 object MedRepo {
     private const val PREFS = "meditag"
     private const val KEY_MEDS = "meds"
-    private const val KEY_HISTORY = "history"
-    /** Se guarda un año de historial (y como mucho MAX_HISTORY entradas, por seguridad). */
+    private const val KEY_HISTORY = "history" // historial antiguo (antes de la 1.9), se migra a la base de datos
+    /** El historial de eventos guarda un año. Las mediciones se guardan siempre. */
     private const val KEEP_DAYS = 365L
-    private const val MAX_HISTORY = 20000
-    private val STAMP = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
     private val OLD_STAMP = Regex("""^(\d{2})/(\d{2}) (\d{2}:\d{2}) · """)
-
-    /** Fecha y hora de una entrada ("dd/MM/yyyy HH:mm · texto"), o null si no se entiende. */
-    fun entryTime(entry: String): LocalDateTime? =
-        runCatching { LocalDateTime.parse(entry.substringBefore(" · "), STAMP) }.getOrNull()
-
-    /** Entradas de versiones anteriores ("dd/MM HH:mm · …", sin año): se les añade el año. */
-    private fun migrate(entry: String): String {
-        val m = OLD_STAMP.find(entry) ?: return entry
-        val (d, mo, hm) = m.destructured
-        val now = LocalDate.now()
-        var year = now.year
-        val date = runCatching { LocalDate.of(year, mo.toInt(), d.toInt()) }.getOrNull() ?: return entry
-        if (date > now) year -= 1
-        return "$d/$mo/$year $hm · " + entry.substring(m.range.last + 1)
-    }
-
-    /** Quita lo que tenga más de un año. */
-    private fun prune(list: List<String>): List<String> {
-        val limit = LocalDateTime.now().minusDays(KEEP_DAYS)
-        return list.filter { e -> entryTime(e)?.let { it >= limit } ?: true }.take(MAX_HISTORY)
-    }
+    private val SLOT_RX = Regex("""^\d{2}:\d{2}–\d{2}:\d{2}$""")
 
     private val _meds = MutableStateFlow<List<Medication>>(emptyList())
     val meds: StateFlow<List<Medication>> = _meds.asStateFlow()
 
+    /** Historial del último año, como texto, del más reciente al más antiguo. */
     private val _history = MutableStateFlow<List<String>>(emptyList())
     val history: StateFlow<List<String>> = _history.asStateFlow()
+
+    /** Cambia cada vez que se guarda una medición (para refrescar la pantalla). */
+    private val _readingsVersion = MutableStateFlow(0)
+    val readingsVersion: StateFlow<Int> = _readingsVersion.asStateFlow()
 
     @Volatile private var loaded = false
 
     fun prefs(ctx: Context) =
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private fun yearAgo() = System.currentTimeMillis() - KEEP_DAYS * 86_400_000L
 
     fun init(ctx: Context) {
         if (loaded) return
@@ -306,12 +335,58 @@ object MedRepo {
             if (loaded) return
             val p = prefs(ctx)
             val arr = JSONArray(p.getString(KEY_MEDS, "[]"))
-            _meds.value = (0 until arr.length()).map { Medication.fromJson(arr.getJSONObject(it)) }
-            val h = JSONArray(p.getString(KEY_HISTORY, "[]"))
-            _history.value = prune((0 until h.length()).map { migrate(h.getString(it)) })
+            _meds.value = sorted((0 until arr.length()).map { Medication.fromJson(arr.getJSONObject(it)) })
+            // Historial antiguo en texto -> base de datos (una sola vez)
+            val old = p.getString(KEY_HISTORY, null)
+            if (old != null) {
+                val h = JSONArray(old)
+                Store.addEvents(ctx, (0 until h.length()).mapNotNull { parseLegacy(h.getString(it), _meds.value) })
+                p.edit().remove(KEY_HISTORY).apply()
+            }
+            Store.pruneEvents(ctx, yearAgo())
+            refreshHistory(ctx)
             loaded = true
         }
     }
+
+    private fun refreshHistory(ctx: Context) {
+        _history.value = Store.events(ctx, yearAgo()).map { it.display() }
+    }
+
+    /**
+     * Convierte una línea del historial antiguo ("dd/MM/yyyy HH:mm · Tomada: X (08:00–10:00)")
+     * en un evento. El tipo se deduce por el nombre del elemento.
+     */
+    fun parseLegacy(entry0: String, items: List<Medication>): Event? {
+        var entry = entry0
+        OLD_STAMP.find(entry)?.let { m -> // "dd/MM HH:mm" sin año
+            val (d, mo, hm) = m.destructured
+            val now = LocalDate.now()
+            val date = runCatching { LocalDate.of(now.year, mo.toInt(), d.toInt()) }.getOrNull() ?: return null
+            val year = if (date > now) now.year - 1 else now.year
+            entry = "$d/$mo/$year $hm · " + entry.substring(m.range.last + 1)
+        }
+        val t = runCatching { LocalDateTime.parse(entry.substringBefore(" · "), Event.STAMP) }.getOrNull() ?: return null
+        val text = entry.substringAfter(" · ")
+        val event = text.substringBefore(": ", text)
+        var name = if (": " in text) text.substringAfter(": ") else ""
+        var slot = ""
+        var detail = ""
+        if (name.endsWith(")") && " (" in name) {
+            val inner = name.substringAfterLast(" (").removeSuffix(")")
+            name = name.substringBeforeLast(" (")
+            if (SLOT_RX.matches(inner)) slot = inner else detail = inner
+        }
+        val item = items.find { it.name == name }
+        return Event(
+            ts = t.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            itemId = item?.id, itemName = name, kind = item?.kind ?: if (name.isNotEmpty()) Kind.MEDICATION else null,
+            slot = slot, event = event, detail = detail,
+        )
+    }
+
+    private fun sorted(list: List<Medication>) =
+        list.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
 
     fun all(ctx: Context): List<Medication> { init(ctx); return _meds.value }
 
@@ -324,17 +399,19 @@ object MedRepo {
         val list = all(ctx).toMutableList()
         val i = list.indexOfFirst { it.id == med.id }
         if (i >= 0) list[i] = med else list += med
-        _meds.value = list.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
+        _meds.value = sorted(list)
         persist(ctx)
     }
 
+    /** Sustituye todo (importar copia de seguridad). */
     @Synchronized
-    fun replaceAll(ctx: Context, meds: List<Medication>, history: List<String>) {
+    fun replaceAll(ctx: Context, meds: List<Medication>, events: List<Event>, readings: List<Reading>) {
         init(ctx)
-        _meds.value = meds.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
-        _history.value = prune(history.map(::migrate))
+        _meds.value = sorted(meds)
         persist(ctx)
-        prefs(ctx).edit().putString(KEY_HISTORY, JSONArray(_history.value).toString()).apply()
+        Store.replaceAll(ctx, events, readings)
+        refreshHistory(ctx)
+        _readingsVersion.value++
     }
 
     @Synchronized
@@ -343,12 +420,34 @@ object MedRepo {
         persist(ctx)
     }
 
+    /** Apunte general en el historial (sin elemento asociado). */
     @Synchronized
     fun log(ctx: Context, text: String) {
         init(ctx)
-        val stamp = LocalDateTime.now().format(STAMP)
-        _history.value = prune(listOf("$stamp · $text") + _history.value)
-        prefs(ctx).edit().putString(KEY_HISTORY, JSONArray(_history.value).toString()).apply()
+        Store.addEvent(ctx, Event(ts = System.currentTimeMillis(), event = text))
+        refreshHistory(ctx)
+    }
+
+    /** Apunte de un elemento, p.ej. logItem(ctx, "Tomada", med, 1). */
+    @Synchronized
+    fun logItem(ctx: Context, event: String, med: Medication, slot: Int? = null, detail: String = "") {
+        init(ctx)
+        Store.addEvent(
+            ctx,
+            Event(
+                ts = System.currentTimeMillis(), itemId = med.id, itemName = med.name, kind = med.kind,
+                slot = if (slot != null && med.multi && slot in med.slots.indices) med.slots[slot].label else "",
+                event = event, detail = detail,
+            )
+        )
+        refreshHistory(ctx)
+    }
+
+    /** Guarda una medición. */
+    fun addReading(ctx: Context, r: Reading) {
+        init(ctx)
+        Store.addReading(ctx, r)
+        _readingsVersion.value++
     }
 
     private fun persist(ctx: Context) {

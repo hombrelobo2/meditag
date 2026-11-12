@@ -56,6 +56,13 @@
             android:turnScreenOn="true" />
 
         <activity
+            android:name=".MeasureActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".MissedActivity"
             android:exported="false"
             android:excludeFromRecents="true"

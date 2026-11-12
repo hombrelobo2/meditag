@@ -73,8 +73,11 @@ object Notifications {
         )
         val n = NotificationCompat.Builder(ctx, CH_REMIND)
             .setSmallIcon(R.drawable.ic_notif)
-            .setContentTitle("Hora de tomar ${med.name}")
-            .setContentText("Escanea la etiqueta antes de las ${fmt(med.slots[i].end)} o sonará la alarma")
+            .setContentTitle(med.kind.reminder(med.name))
+            .setContentText(
+                (if (med.isMeasurement) "Mídete y guarda los valores" else "Escanea la pegatina") +
+                    " antes de las ${fmt(med.slots[i].end)} o sonará la alarma"
+            )
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pi)
@@ -99,7 +102,7 @@ object Notifications {
             .setSmallIcon(R.drawable.ic_notif)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(pi, true)
-            .setContentTitle("✖ Sin tomar: ${med.name}${med.slotSuffix(i)}")
+            .setContentTitle("✖ Pendiente: ${med.name}${med.slotSuffix(i)}")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -120,8 +123,8 @@ object Notifications {
         )
         return NotificationCompat.Builder(ctx, alarmChannel(ctx))
             .setSmallIcon(R.drawable.ic_notif)
-            .setContentTitle("¡TOMA TU MEDICACIÓN!")
-            .setContentText("$names — escanea la etiqueta NFC para parar la alarma")
+            .setContentTitle("¡TIENES UNA ALARMA PENDIENTE!")
+            .setContentText("$names — escanea la pegatina NFC para parar la alarma")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

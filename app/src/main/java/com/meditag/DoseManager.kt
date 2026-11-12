@@ -8,7 +8,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-data class ScanResult(val ok: Boolean, val message: String)
+/**
+ * Resultado de leer una pegatina. Si [measureItem] no es null, hay que abrir el formulario
+ * de medición para ese elemento (y la toma [measureSlot], o -1 si es una medición extra).
+ */
+data class ScanResult(val ok: Boolean, val message: String, val measureItem: Int? = null, val measureSlot: Int = -1)
 
 object Nfc {
     const val READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A or
@@ -34,11 +38,16 @@ object DoseManager {
                 return ScanResult(true, "✔ Prueba superada: pegatina leída ($tagId). No se ha registrado ninguna toma.")
             }
         }
-        val meds = MedRepo.all(ctx).filter { it.enabled && it.tagId.equals(tagId, ignoreCase = true) }
-        if (meds.isEmpty()) return ScanResult(false, "Etiqueta no registrada ($tagId)")
+        val all = MedRepo.all(ctx).filter { it.enabled && it.tagId.equals(tagId, ignoreCase = true) }
+        if (all.isEmpty()) return ScanResult(false, "Etiqueta no registrada ($tagId)")
+        // Mediciones: no se registran al escanear, sino al guardar los valores en el formulario.
+        all.firstOrNull { it.isMeasurement }?.let { m ->
+            val pick = pickSlot(m, LocalDateTime.now())
+            return ScanResult(true, "Introduce los valores de ${m.name}", measureItem = m.id, measureSlot = pick?.first ?: -1)
+        }
+        val meds = all
 
         val now = LocalDateTime.now()
-        val nowMin = now.hour * 60 + now.minute
         val taken = mutableListOf<String>()
         val already = mutableListOf<String>()
         val notYet = mutableListOf<String>()
@@ -55,18 +64,11 @@ object DoseManager {
                 continue
             }
             val st = m.slots.indices.map { m.slotStatus(it, now) }
-            // Prioridad: la toma en curso; si no, la que empieza pronto; si no, una fuera de
-            // plazo (para parar su alarma); si no, una que quedó sin tomar (con retraso).
-            val i = st.indexOfFirst { it == DoseStatus.DUE }.takeIf { it >= 0 }
-                ?: m.slots.indices.firstOrNull { st[it] == DoseStatus.PENDING && nowMin >= m.slots[it].start - EARLY_MARGIN_MIN }
-                ?: st.indexOfFirst { it == DoseStatus.OVERDUE }.takeIf { it >= 0 }
-            if (i != null) {
-                markTaken(ctx, m, i); taken += m.name + m.slotSuffix(i)
-                continue
-            }
-            val missed = st.indexOfLast { it == DoseStatus.MISSED }
-            if (missed >= 0) {
-                markTaken(ctx, m, missed, late = true); taken += "${m.name}${m.slotSuffix(missed)} con retraso"
+            val pick = pickSlot(m, now)
+            if (pick != null) {
+                val (i, late) = pick
+                markTaken(ctx, m, i, late)
+                taken += m.name + m.slotSuffix(i) + if (late) " con retraso" else ""
                 continue
             }
             val nextToday = m.slots.indices.firstOrNull { st[it] == DoseStatus.PENDING }
@@ -83,12 +85,52 @@ object DoseManager {
         }
     }
 
-    fun markTaken(ctx: Context, med: Medication, i: Int, late: Boolean = false) {
+    /**
+     * Qué toma de hoy registra un escaneo (o una medición): la que está en curso; si no, la que
+     * empieza en menos de 30 min; si no, una fuera de plazo (para parar su alarma); si no, una
+     * que quedó sin hacer (con retraso). Devuelve (toma, conRetraso) o null.
+     */
+    fun pickSlot(m: Medication, now: LocalDateTime): Pair<Int, Boolean>? {
+        if (m.mode == Mode.ON_DEMAND || !m.enabled || !m.isScheduledOn(now.toLocalDate())) return null
+        val nowMin = now.hour * 60 + now.minute
+        val st = m.slots.indices.map { m.slotStatus(it, now) }
+        val i = st.indexOfFirst { it == DoseStatus.DUE }.takeIf { it >= 0 }
+            ?: m.slots.indices.firstOrNull { st[it] == DoseStatus.PENDING && nowMin >= m.slots[it].start - EARLY_MARGIN_MIN }
+            ?: st.indexOfFirst { it == DoseStatus.OVERDUE }.takeIf { it >= 0 }
+        if (i != null) return i to false
+        val missed = st.indexOfLast { it == DoseStatus.MISSED }
+        return if (missed >= 0) missed to true else null
+    }
+
+    fun markTaken(ctx: Context, med: Medication, i: Int, late: Boolean = false, detail: String = "") {
         val nowMs = System.currentTimeMillis()
         val updated = med.withState(i) { it.copy(takenAt = nowMs, nextRepeatAt = 0L) }.copy(takenAt = nowMs)
         MedRepo.upsert(ctx, updated)
-        MedRepo.log(ctx, (if (late) "Tomada con retraso: " else "Tomada: ") + med.name + med.slotSuffix(i))
+        MedRepo.logItem(ctx, med.kind.doneWord + if (late) " con retraso" else "", med, i, detail)
         finishDose(ctx, updated, i)
+    }
+
+    /**
+     * Guarda una medición. Si [slot] es una toma de hoy aún abierta (o no realizada), cuenta
+     * como hecha; si no, se guarda como medición extra.
+     */
+    fun saveMeasurement(ctx: Context, med: Medication, slot: Int, r: Reading) {
+        val fresh = MedRepo.get(ctx, med.id) ?: med
+        val st = if (slot in fresh.slots.indices) fresh.slotStatus(slot) else null
+        val label = if (slot in fresh.slots.indices && fresh.multi) fresh.slots[slot].label else ""
+        MedRepo.addReading(ctx, r.copy(itemId = fresh.id, itemName = fresh.name, slot = label))
+        when (st) {
+            DoseStatus.DUE, DoseStatus.OVERDUE, DoseStatus.PENDING ->
+                markTaken(ctx, fresh, slot, late = false, detail = r.summary())
+            DoseStatus.MISSED -> markTaken(ctx, fresh, slot, late = true, detail = r.summary())
+            else -> {
+                val updated = if (fresh.mode == Mode.ON_DEMAND)
+                    fresh.copy(takenAt = r.ts, countDate = LocalDate.now().toString(), count = fresh.todayCount() + 1)
+                else fresh.copy(takenAt = r.ts)
+                MedRepo.upsert(ctx, updated)
+                MedRepo.logItem(ctx, "Medición registrada", fresh, null, r.summary())
+            }
+        }
     }
 
     /** Medicamento a demanda: se registra cada vez que se escanea. */
@@ -99,14 +141,14 @@ object DoseManager {
             count = med.todayCount() + 1,
         )
         MedRepo.upsert(ctx, updated)
-        MedRepo.log(ctx, "Tomada (a demanda): ${med.name}")
+        MedRepo.logItem(ctx, med.kind.doneWord + " (a demanda)", med)
     }
 
     /** "Cancelar toma": se salta la toma [i] de hoy, sin alarma, y queda en el historial. */
     fun skip(ctx: Context, med: Medication, i: Int) {
         val updated = med.withState(i) { it.copy(skipped = true, nextRepeatAt = 0L) }
         MedRepo.upsert(ctx, updated)
-        MedRepo.log(ctx, "Toma cancelada: ${med.name}${med.slotSuffix(i)}")
+        MedRepo.logItem(ctx, "Cancelada", med, i)
         finishDose(ctx, updated, i)
     }
 
@@ -133,15 +175,14 @@ object DoseManager {
         val done = med.state(i).repeatsDone
         val next = System.currentTimeMillis() + every * 60_000L
         val sameDay = java.time.Instant.ofEpochMilli(next).atZone(java.time.ZoneId.systemDefault()).toLocalDate() == LocalDate.now()
-        val label = med.name + med.slotSuffix(i)
         val updated = if (every > 0 && done < AlarmSettings.repeatTimes(ctx) && sameDay) {
             med.withState(i) { it.copy(repeatsDone = done + 1, nextRepeatAt = next) }.also {
-                MedRepo.log(ctx, "Alarma sin respuesta: $label (volverá a sonar a las ${hhmm(next)})")
+                MedRepo.logItem(ctx, "Alarma sin respuesta", med, i, "volverá a sonar a las ${hhmm(next)}")
                 Notifications.showMissed(ctx, it, i, "Volverá a sonar a las ${hhmm(next)}. Escanea la pegatina cuando la tomes.")
             }
         } else {
             med.withState(i) { it.copy(missed = true, nextRepeatAt = 0L) }.also {
-                MedRepo.log(ctx, "Toma NO realizada (alarma sin respuesta): $label")
+                MedRepo.logItem(ctx, "NO realizada (alarma sin respuesta)", med, i)
                 Notifications.showMissed(ctx, it, i, "No se registró esta toma. Si la tomas tarde, escanea la pegatina.")
             }
         }

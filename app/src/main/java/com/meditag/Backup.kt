@@ -84,82 +84,54 @@ object UpdateCheck {
     }
 }
 
-/** Copia de seguridad en JSON: medicamentos (con pauta y estado) + historial. */
+/** Copia de seguridad en JSON: elementos (con pauta y estado), historial y mediciones. */
 object Backup {
-    private const val FORMAT = 1
+    private const val FORMAT = 2
 
     fun suggestedName() = "meditag-${LocalDate.now()}.json"
 
     fun export(ctx: Context, uri: Uri): String {
         val meds = JSONArray().apply { MedRepo.all(ctx).forEach { put(it.toJson()) } }
+        val events = Store.events(ctx)
+        val readings = Store.readings(ctx)
         val root = JSONObject()
             .put("app", "MediTag")
             .put("format", FORMAT)
             .put("appVersion", BuildConfig.VERSION_NAME)
             .put("exportedAt", LocalDateTime.now().toString())
             .put("medications", meds)
-            .put("history", JSONArray(MedRepo.history.value))
-        ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(root.toString(2).toByteArray()) }
-        val n = MedRepo.all(ctx).size
-        return "Exportados $n medicamentos y ${MedRepo.history.value.size} registros del historial"
+            .put("events", JSONArray().apply { events.forEach { put(it.toJson()) } })
+            .put("readings", JSONArray().apply { readings.forEach { put(it.toJson()) } })
+        ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(root.toString(1).toByteArray()) }
+        return "Exportados ${MedRepo.all(ctx).size} elementos, ${events.size} registros del historial y ${readings.size} mediciones"
     }
 
-    /** Lee y valida el archivo; no cambia nada hasta llamar a [apply]. */
+    /** Lee y valida el archivo; no cambia nada hasta llamar a [apply]. Acepta copias antiguas. */
     fun read(ctx: Context, uri: Uri): Pending {
         val text = ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes().toString(Charsets.UTF_8) }
         val root = JSONObject(text)
         require(root.optString("app") == "MediTag") { "El archivo no es una copia de MediTag" }
         val arr = root.getJSONArray("medications")
         val meds = (0 until arr.length()).map { Medication.fromJson(arr.getJSONObject(it)) }
-        val h = root.optJSONArray("history") ?: JSONArray()
-        val history = (0 until h.length()).map { h.getString(it) }
-        return Pending(meds, history, root.optString("exportedAt").take(16).replace('T', ' '))
-    }
-
-    data class Pending(val meds: List<Medication>, val history: List<String>, val exportedAt: String)
-
-    fun sheetName() = "meditag-historial-${LocalDate.now()}.xlsx"
-
-    /**
-     * Historial como hoja de cálculo Excel (.xlsx), de más antiguo a más reciente.
-     * Columnas: Fecha, Hora, Evento, Medicamento, Detalle.
-     */
-    fun exportSheet(ctx: Context, uri: Uri): String {
-        val entries = MedRepo.history.value.reversed()
-        val rows = entries.map { e ->
-            val t = MedRepo.entryTime(e)
-            val text = if (t != null) e.substringAfter(" · ") else e
-            val event = text.substringBefore(": ", text)
-            var med = if (": " in text) text.substringAfter(": ") else ""
-            var detail = ""
-            if (med.endsWith(")") && " (" in med) {
-                detail = med.substringAfterLast(" (").removeSuffix(")")
-                med = med.substringBeforeLast(" (")
+        val events = root.optJSONArray("events")?.let { e -> (0 until e.length()).map { Event.fromJson(e.getJSONObject(it)) } }
+            ?: (root.optJSONArray("history") ?: JSONArray()).let { h -> // formato 1: historial en texto
+                (0 until h.length()).mapNotNull { MedRepo.parseLegacy(h.getString(it), meds) }
             }
-            listOf(
-                t?.let { Xlsx.Date(it.toLocalDate()) } ?: Xlsx.Empty,
-                t?.let { Xlsx.Time(it.toLocalTime().withSecond(0).withNano(0)) } ?: Xlsx.Empty,
-                Xlsx.Text(event), Xlsx.Text(med), Xlsx.Text(detail),
-            )
+        val readings = (root.optJSONArray("readings") ?: JSONArray()).let { r ->
+            (0 until r.length()).map { Reading.fromJson(r.getJSONObject(it)) }
         }
-        ctx.contentResolver.openOutputStream(uri, "wt")!!.use {
-            Xlsx.write(
-                it, "Historial",
-                header = listOf("Fecha", "Hora", "Evento", "Medicamento", "Detalle"),
-                widths = listOf(12, 7, 38, 26, 34),
-                rows = rows,
-            )
-        }
-        return "Exportadas ${rows.size} entradas del historial"
+        return Pending(meds, events, readings, root.optString("exportedAt").take(16).replace('T', ' '))
     }
+
+    data class Pending(val meds: List<Medication>, val events: List<Event>, val readings: List<Reading>, val exportedAt: String)
 
     fun apply(ctx: Context, p: Pending) {
         MedRepo.all(ctx).forEach {
             AlarmScheduler.cancel(ctx, it.id)
             for (i in it.slots.indices) AlarmService.stop(Occ.key(it.id, i))
         }
-        MedRepo.replaceAll(ctx, p.meds, p.history)
-        MedRepo.log(ctx, "Importada copia de seguridad (${p.meds.size} medicamentos)")
+        MedRepo.replaceAll(ctx, p.meds, p.events, p.readings)
+        MedRepo.log(ctx, "Importada copia de seguridad (${p.meds.size} elementos, ${p.readings.size} mediciones)")
         AlarmScheduler.scheduleAll(ctx)
     }
 }
@@ -222,11 +194,11 @@ fun BackupDialog(act: MainActivity, onDismiss: () -> Unit) {
         title = { Text("Copia de seguridad") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Guarda en un archivo los medicamentos (con su pauta y su pegatina) y el historial, o recupéralos desde uno.")
+                Text("Guarda en un archivo los elementos (con su pauta y su pegatina), el historial y las mediciones, o recupéralos desde uno.")
                 TextButton(onClick = { onDismiss(); act.exportBackup() }) { Text("Exportar a archivo…") }
                 TextButton(onClick = { onDismiss(); act.importBackup() }) { Text("Importar desde archivo…") }
                 Text(
-                    "Importar sustituye los medicamentos y el historial actuales. El sonido de alarma elegido no se incluye.",
+                    "Importar sustituye los elementos, el historial y las mediciones actuales. El sonido de alarma elegido no se incluye.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -242,9 +214,9 @@ fun ImportConfirmDialog(p: Backup.Pending, onConfirm: () -> Unit, onDismiss: () 
         title = { Text("¿Importar copia?") },
         text = {
             Text(
-                "La copia${if (p.exportedAt.isNotBlank()) " del ${p.exportedAt}" else ""} contiene ${p.meds.size} medicamentos" +
+                "La copia${if (p.exportedAt.isNotBlank()) " del ${p.exportedAt}" else ""} contiene ${p.meds.size} elementos" +
                     (if (p.meds.isNotEmpty()) " (${p.meds.joinToString { it.name }})" else "") +
-                    " y ${p.history.size} registros del historial.\n\nSe sustituirán los datos actuales."
+                    ", ${p.events.size} registros del historial y ${p.readings.size} mediciones.\n\nSe sustituirán los datos actuales."
             )
         },
         confirmButton = { TextButton(onClick = onConfirm) { Text("Importar") } },
@@ -266,13 +238,13 @@ fun HistoryDialog(history: List<String>, onExport: () -> Unit, onDismiss: () -> 
                     TextButton(onClick = onDismiss) { Text("Cerrar") }
                 }
                 Text(
-                    "Se guarda el último año. Puedes exportarlo a una hoja de cálculo para enseñárselo a tu médico.",
+                    "Se guarda el último año (las mediciones, siempre). Puedes exportarlo a Excel para el médico.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 if (history.isNotEmpty()) TextButton(
                     onClick = onExport, modifier = Modifier.padding(horizontal = 8.dp)
-                ) { Text("📄 Exportar a hoja de cálculo") }
+                ) { Text("📄 Exportar para el médico") }
                 HorizontalDivider()
                 if (history.isEmpty()) {
                     Text("Todavía no hay nada registrado.", Modifier.padding(16.dp))
