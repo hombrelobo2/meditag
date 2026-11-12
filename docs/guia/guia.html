@@ -63,6 +63,29 @@
   .phone .toast{background:#323232;color:#fff;border-radius:2mm;padding:2mm;margin-top:3mm;font-size:7pt}
   .phone .issue{background:#5a2320;color:#ffdad5;border-radius:2mm;padding:2mm;margin-bottom:2mm;display:flex;justify-content:space-between;gap:2mm;font-size:6.6pt}
   .phone .issue b{color:#ffb4a9;white-space:nowrap}
+  .phone .btn.off{color:#aab;border-color:#556}
+  .phone .pin{float:right}
+  .phone .pin.off{opacity:.35}
+  .phone .sl{display:flex;gap:1.5mm;font-size:6pt;margin-top:.8mm;white-space:nowrap}
+  .phone .sl b{min-width:14mm;color:#e9efe9}
+  .phone .slot{display:flex;align-items:center;gap:1mm;margin-bottom:1mm}
+  .phone .slot .btn{margin-top:0}
+  .phone .x{color:#ff8a80;font-weight:700;margin-left:1mm}
+  .phone .fld{flex:1;border:1px solid #556;border-radius:1.5mm;padding:1.2mm 1.8mm;font-size:9pt}
+  .phone .cal{border:1px solid #445;border-radius:2mm;padding:1.5mm}
+  .phone .calh{text-align:center;font-weight:600;margin-bottom:1mm}
+  .phone .g7{display:grid;grid-template-columns:repeat(7,1fr);gap:.6mm;text-align:center;font-size:6.5pt}
+  .phone .g7 span{display:flex;align-items:center;justify-content:center;height:4.6mm;border-radius:50%}
+  .phone .g7.wk span{color:#889;height:3.5mm}
+  .phone .g7 .on{background:#7ee08a;color:#103a16;font-weight:700}
+  .phone .g7 .p{color:#556}
+  .phone .g7 .today{outline:1.5px solid #ffb74d}
+  .phone .big-btn{flex:1;border-radius:3mm;padding:2mm;text-align:center;color:#fff;font-size:6.5pt;line-height:1.25}
+  .phone .big-btn b{font-size:9pt;display:block}
+  .phone .notif{background:#f4f6f5;color:#1d2421;border-radius:3mm;padding:2.5mm;font-size:7.2pt}
+  .phone .notif .sm{color:#667}
+  .phone .sw{display:inline-block;width:8mm;height:4.2mm;border-radius:3mm;background:#7ee08a;position:relative;flex:none}
+  .phone .sw::after{content:"";position:absolute;right:.6mm;top:.6mm;width:3mm;height:3mm;border-radius:50%;background:#103a16}
   .cap{font-size:8.5pt;color:var(--muted);text-align:center;margin-top:2mm}
 
   /* --- Portada --- */
@@ -91,16 +114,16 @@
     MediTag
   </div>
   <h1>Guía de instalación<br>y uso</h1>
-  <div class="sub">Una app gratuita para Android que te ayuda a no olvidar la medicación… y a comprobar que de verdad te la has tomado.</div>
+  <div class="sub">Una app gratuita para Android que te ayuda a no olvidar la medicación, los complementos, tus mediciones (tensión, glucemia, peso…) y tus hábitos… y a comprobar que de verdad lo has hecho.</div>
 
   <div class="flow">
     <div>
       <svg width="64" height="54" viewBox="0 0 64 54"><rect x="6" y="10" width="52" height="36" rx="4" fill="#fff"/><rect x="6" y="10" width="52" height="9" fill="#B2DFDB"/><circle cx="32" cy="32" r="8" fill="#FFB74D"/><path d="M28 32h8M32 28v8" stroke="#fff" stroke-width="2"/></svg>
-      <b>1. Pega</b><span>una pegatina NFC en la caja de cada medicamento.</span>
+      <b>1. Pega</b><span>una pegatina NFC en cada medicamento, aparato o sitio.</span>
     </div>
     <div>
       <svg width="64" height="54" viewBox="0 0 64 54"><rect x="8" y="22" width="30" height="22" rx="3" fill="#fff"/><circle cx="23" cy="33" r="5" fill="#FFB74D"/><rect x="34" y="4" width="20" height="36" rx="4" fill="#263238" transform="rotate(18 44 22)"/><path d="M50 8a8 8 0 0 1 6 6M52 3a14 14 0 0 1 9 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-      <b>2. Acerca el móvil</b><span>cuando te la tomes. La toma queda apuntada.</span>
+      <b>2. Acerca el móvil</b><span>cuando lo hagas. Queda apuntado.</span>
     </div>
     <div>
       <svg width="64" height="54" viewBox="0 0 64 54"><path d="M32 6c-9 0-14 7-14 15v10l-5 6h38l-5-6V21c0-8-5-15-14-15z" fill="#fff"/><circle cx="32" cy="43" r="4" fill="#fff"/><path d="M8 14a14 14 0 0 1 6-8M56 14a14 14 0 0 0-6-8" stroke="#FFCDD2" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
@@ -119,13 +142,15 @@
 
   <div style="margin-top:9mm;display:grid;grid-template-columns:1fr 1fr;gap:1.5mm 8mm;font-size:10pt">
     <div style="grid-column:1/-1;font-weight:700;font-size:11pt;margin-bottom:1mm">En esta guía</div>
-    <div>1 · Antes de empezar ……… 2</div><div>7 · Cuando suena la alarma ……… 7</div>
-    <div>2 · Instalar la app ……… 3</div><div>8 · Si no estabas cerca del móvil ……… 7</div>
-    <div>3 · La primera vez: permisos ……… 4</div><div>9 · Ajustes de la alarma ……… 8</div>
-    <div>4 · Añadir un medicamento ……… 5</div><div>10 · Copia de seguridad ……… 8</div>
-    <div>5 · Elegir la pauta ……… 6</div><div>11 · Informes y actualizaciones ……… 8</div>
-    <div>6 · El día a día ……… 6</div><div>12 · Mediciones y hábitos ……… 9</div>
-    <div></div><div>13 · Si algo no funciona ……… 10</div>
+    <div>1 · Antes de empezar ……… 2</div><div>10 · Cuando suena la alarma ……… 9</div>
+    <div>2 · Instalar la app ……… 3</div><div>11 · Si no estabas cerca ……… 9</div>
+    <div>3 · La primera vez: permisos ……… 4</div><div>12 · Ajustes de la alarma ……… 10</div>
+    <div>4 · Añadir un elemento ……… 5</div><div>13 · Copia de seguridad ……… 10</div>
+    <div>5 · Tipos de elemento ……… 6</div><div>14 · Mediciones ……… 11</div>
+    <div>6 · La pauta: qué días toca ……… 6</div><div>15 · Informes para el médico ……… 12</div>
+    <div>7 · Varias tomas al día ……… 7</div><div>16 · Actualizaciones ……… 13</div>
+    <div>8 · Fijar arriba (📌) ……… 7</div><div>17 · Si algo no funciona ……… 14</div>
+    <div>9 · El día a día ……… 8</div><div></div>
   </div>
 
   <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.10.1 · noviembre 2026</span></div>
@@ -155,7 +180,7 @@
   </div>
 
   <h3>Cómo funciona, en una frase</h3>
-  <p>Para cada medicamento eliges <b>los días y la franja horaria</b> en que te lo tomas (por ejemplo, de 8:00 a 10:00). Cuando te lo tomes, acercas el móvil a la pegatina. Si llega el final de la franja y no lo has hecho, <b>suena una alarma</b> muy molesta hasta que acerques la pegatina.</p>
+  <p>Para cada medicamento (o complemento, medición o hábito) eliges <b>los días y la franja horaria</b> en que te lo tomas (por ejemplo, de 8:00 a 10:00). Cuando te lo tomes, acercas el móvil a la pegatina. Si llega el final de la franja y no lo has hecho, <b>suena una alarma</b> muy molesta hasta que acerques la pegatina.</p>
 
   <div class="box warn"><span class="t">Importante</span>
     <p>MediTag es una ayuda para acordarte, <b>no sustituye lo que te diga tu médico</b>. Las dosis y los horarios los decide tu médico o farmacéutico.</p>
@@ -238,108 +263,209 @@
 
 <!-- ============ AÑADIR MEDICAMENTO ============ -->
 <section class="page">
-  <h2><span class="n">4</span>Añadir un medicamento</h2>
+  <h2><span class="n">4</span>Añadir un elemento</h2>
 
   <h3 style="margin-top:0">Primero, pega la pegatina</h3>
-  <p>Pégala en la <b>caja o el bote</b> que usas cada día, en una parte lisa. Evita pegarla sobre papel de aluminio o metal, porque no se leería. Si usas pastillero, puedes pegarla en el pastillero. Cada medicamento necesita su propia pegatina.</p>
+  <p>Pégala en lo que usas cada vez: la <b>caja o el bote</b> del medicamento, el <b>tensiómetro</b>, la <b>báscula</b>, el <b>vaso de los cepillos</b>… En una parte lisa y lejos de metal o papel de aluminio, porque no se leería. Cada elemento necesita su propia pegatina.</p>
 
   <div class="cols">
     <div>
       <h3>Después, en la app</h3>
       <ol class="steps">
         <li>Toca <span class="ui">+ Añadir</span> (abajo a la derecha).</li>
-        <li>Arriba, en <b>Tipo</b>, deja marcado <span class="ui">💊 Medicamento</span> (o elige complemento, medición o hábito: ver página 9).</li>
+        <li>Arriba, en <b>Tipo</b>, elige qué es: <span class="ui">💊 Medicamento</span>, <span class="ui">🌿 Complemento</span>, <span class="ui">🩺 Medición</span> o <span class="ui">✅ Hábito</span> (página 6).</li>
         <li>Escribe el <b>nombre</b>, por ejemplo «Pastilla de la mañana».</li>
-        <li>Toca <span class="ui">Escanear</span> y <b>acerca la pegatina</b> a la parte de atrás del móvil. Notarás una vibración y aparecerá un código (como 04:3D:72:…). Eso significa que ya está unida.</li>
-        <li>En <b>Pauta</b>, elige cuándo te lo tomas (lo explicamos en la página siguiente). Lo normal es <span class="ui">Cada día</span>.</li>
-        <li>En <b>Horario de la toma</b>, toca <span class="ui">Desde</span> y elige la hora a partir de la que te lo puedes tomar. Toca <span class="ui">Hasta</span> y elige la hora límite.</li>
+        <li>Toca <span class="ui">Escanear</span> y <b>acerca la pegatina</b> a la parte de atrás del móvil. Notarás una vibración y aparecerá un código (como 04:3D:72:…): ya está unida.</li>
+        <li>En <b>Pauta</b>, elige qué días toca (página 6). Lo normal es <span class="ui">Cada día</span>.</li>
+        <li>En <b>Horario de la toma</b>, toca <span class="ui">Desde</span> y <span class="ui">Hasta</span> para poner la franja. Si son varias veces al día, toca <span class="ui">+ Añadir toma</span> (página 7).</li>
         <li>Toca <span class="ui">Guardar</span> arriba a la derecha.</li>
       </ol>
       <div class="box tip"><span class="t">¿Qué franja horaria pongo?</span>
         <p>Una franja cómoda, de 1 o 2 horas. Por ejemplo, si desayunas entre 8 y 9, pon de <b>8:00 a 10:00</b>. La alarma solo suena si a las 10:00 todavía no has acercado la pegatina.</p>
       </div>
-      <p style="font-size:9.5pt;color:var(--muted)">¿Varias tomas al día (por ejemplo, mañana, tarde y noche)? Toca <span class="ui">+ Añadir toma</span> y pon el horario de cada una. Basta con <b>una sola pegatina</b>: al acercarla se apunta la toma que toque en ese momento, y cada toma tiene su propia alarma.</p>
     </div>
     <div>
       <div class="phone"><div class="bar"><span>10:30</span><span>▮▮▮ ◔</span></div>
         <div class="scr" style="background:#151a17">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm"><span class="sm">Cancelar</span><b>Nuevo: medicamento</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
           <div class="ok" style="font-size:6.8pt">Tipo</div>
-          <div style="margin-bottom:2mm"><span class="btn" style="background:#2e4a33">✓ 💊 Medicamento</span> <span class="btn" style="color:#aab;border-color:#556">🌿 Complemento</span> <span class="btn" style="color:#aab;border-color:#556">🩺 Medición</span></div>
+          <div style="margin-bottom:2mm"><span class="btn" style="background:#2e4a33">✓ 💊 Medicamento</span> <span class="btn off">🌿 Complemento</span> <span class="btn off">🩺 Medición</span> <span class="btn off">✅ Hábito</span></div>
           <div style="border:1px solid #556;border-radius:1.5mm;padding:1.5mm;margin-bottom:2.5mm"><span class="sm">Nombre</span><br>Pastilla de la mañana</div>
           <div class="ok" style="font-size:6.8pt">Etiqueta NFC</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5mm">04:3D:72:18:CD:2A:81 <span class="btn" style="margin:0">Escanear</span></div>
           <div class="ok" style="font-size:6.8pt">Pauta</div>
-          <div style="margin-bottom:2.5mm"><span class="btn" style="background:#2e4a33">✓ Cada día</span> <span class="btn" style="color:#aab;border-color:#556">Días de la semana</span> <span class="btn" style="color:#aab;border-color:#556">Cada N días</span></div>
+          <div style="margin-bottom:2.5mm"><span class="btn" style="background:#2e4a33">✓ Cada día</span> <span class="btn off">Días de la semana</span> <span class="btn off">Cada N días</span></div>
           <div class="ok" style="font-size:6.8pt">Horario de la toma</div>
           <div><span class="btn">Desde 08:00</span> <span class="btn">Hasta 10:00</span></div>
-          <div><span class="btn" style="color:#aab;border-color:#556">+ Añadir toma</span></div>
+          <div><span class="btn off">+ Añadir toma</span></div>
           <div class="sm" style="margin-top:2mm">Si a las 10:00 no has escaneado la pegatina, sonará la alarma.</div>
         </div>
       </div>
-      <div class="cap">Pantalla para añadir un medicamento.</div>
+      <div class="cap">Pantalla para añadir un elemento.</div>
     </div>
   </div>
   <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>5</span></div>
 </section>
 
-<!-- ============ PAUTAS + USO DIARIO ============ -->
+<!-- ============ TIPOS + PAUTA ============ -->
 <section class="page">
-  <h2><span class="n">5</span>Elegir la pauta</h2>
-  <p>La pauta dice <b>qué días</b> te toca el medicamento. En la pantalla verás un calendario con los días marcados, para que compruebes que está bien antes de guardar.</p>
+  <h2><span class="n">5</span>Tipos de elemento</h2>
+  <p>MediTag no solo sirve para medicamentos. El <b>tipo</b> cambia el texto de los avisos y cómo sale en los informes:</p>
   <table>
-    <tr><th style="width:38mm">Opción</th><th>Para qué sirve</th><th style="width:48mm">Ejemplo</th></tr>
-    <tr><td><b>Cada día</b></td><td>Todos los días.</td><td>Una pastilla cada mañana.</td></tr>
-    <tr><td><b>Días de la semana</b></td><td>Toca las letras de los días: L M X J V S D.</td><td>Solo de lunes a viernes.</td></tr>
-    <tr><td><b>Cada N días</b></td><td>Cada 2 días (días alternos), cada 3… Toca en el calendario el día de la primera toma.</td><td>Un día sí y otro no.</td></tr>
-    <tr><td><b>Fechas concretas</b></td><td>Toca en el calendario cada día que te toca.</td><td>Un tratamiento de 7 días.</td></tr>
-    <tr><td><b>A demanda</b></td><td>Sin horario ni alarma. Solo lleva la cuenta de cuándo te lo tomas.</td><td>Un medicamento «si lo necesitas».</td></tr>
+    <tr><th style="width:36mm">Tipo</th><th>Para qué</th><th style="width:52mm">Al acercar la pegatina…</th></tr>
+    <tr><td><b>💊 Medicamento</b></td><td>Pastillas, jarabes, inhaladores… La alarma dice «¡TOMA TU MEDICACIÓN!».</td><td>Se apunta la toma.</td></tr>
+    <tr><td><b>🌿 Complemento</b></td><td>Vitaminas, magnesio, omega 3… Funciona igual, pero sale aparte en los informes.</td><td>Se apunta la toma.</td></tr>
+    <tr><td><b>🩺 Medición</b></td><td>Tensión, saturación, glucemia, peso o temperatura (página 11).</td><td>Se abre un formulario para escribir los números.</td></tr>
+    <tr><td><b>✅ Hábito</b></td><td>Lo que se te olvide: lavarte los dientes, beber agua, estirar… La alarma dice «¡NO LO OLVIDES!».</td><td>Se apunta como hecho.</td></tr>
   </table>
 
-  <h2 style="margin-top:8mm"><span class="n">6</span>El día a día</h2>
+  <h2 style="margin-top:7mm"><span class="n">6</span>La pauta: qué días toca</h2>
   <div class="cols">
     <div>
-      <ol class="steps">
-        <li>Al empezar tu franja horaria, el móvil te avisa con una <b>notificación</b>: «Hora de tomar…».</li>
-        <li>Tómate el medicamento.</li>
-        <li><b>Desbloquea el móvil</b> y acerca la pegatina a la parte de atrás. No hace falta abrir la app.</li>
-        <li>Verás un mensaje: <b>«✔ Toma registrada»</b>. ¡Listo! Ese día ya no sonará la alarma.</li>
-      </ol>
-      <div class="box tip"><span class="t">Trucos</span>
-        <ul class="dots">
-          <li>Puedes registrarla desde <b>30 minutos antes</b> de que empiece la franja.</li>
-          <li>La mayoría de móviles solo leen pegatinas con la pantalla <b>encendida y desbloqueada</b>.</li>
-          <li>En la app, cada medicamento muestra su estado: <b>Pendiente</b>, <b>¡Toca ahora!</b> o <b>✔ Tomada hoy a las…</b></li>
-          <li>Si un día no te toca, al acercar la pegatina te dirá «Hoy no toca» y la próxima fecha.</li>
-        </ul>
-      </div>
+      <p>En <b>Pauta</b> eliges el calendario. Debajo aparece un <b>calendario</b> con los días marcados, para que compruebes que está bien antes de guardar.</p>
+      <table>
+        <tr><th style="width:30mm">Opción</th><th>Cómo se pone</th></tr>
+        <tr><td><b>Cada día</b></td><td>Todos los días. Ej.: una pastilla cada mañana.</td></tr>
+        <tr><td><b>Días de la semana</b></td><td>Toca las letras L M X J V S D. Ej.: solo de lunes a viernes.</td></tr>
+        <tr><td><b>Cada N días</b></td><td>Con <span class="ui">−</span> y <span class="ui">+</span> eliges cada cuántos días (2 = días alternos) y tocas en el calendario el día de la primera toma.</td></tr>
+        <tr><td><b>Fechas concretas</b></td><td>Toca en el calendario cada día que toca. Ej.: un tratamiento de 7 días.</td></tr>
+        <tr><td><b>A demanda</b></td><td>Sin horario ni alarma: cada vez que acercas la pegatina se apunta, y la tarjeta cuenta cuántas veces van hoy. Ej.: un analgésico «si lo necesitas».</td></tr>
+      </table>
     </div>
     <div>
-      <div class="phone"><div class="bar"><span>08:42</span><span>▮▮▮ ◔</span></div>
-        <div class="scr" style="min-height:82mm">
-          <div class="ttl">MediTag <span>🔔 Alarma</span></div>
-          <div class="card"><div class="nm">💊 Pastilla de la mañana <span style="float:right">📌</span></div><div class="sm">Cada día · 08:00–10:00</div><div class="ok" style="margin-top:1mm">✔ Tomada hoy a las 08:42</div></div>
-          <div class="card"><div class="nm">💊 Pastilla de la noche <span style="float:right;opacity:.35">📌</span></div><div class="sm">Cada día · 21:00–23:00</div><div style="margin-top:1mm;color:#9aa59d;font-weight:600">Pendiente · desde 21:00</div></div>
-          <div class="toast">✔ Toma registrada: Pastilla de la mañana a las 08:42</div>
+      <div class="phone"><div class="bar"><span>11:00</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#151a17;min-height:0">
+          <div class="ok" style="font-size:6.8pt">Pauta</div>
+          <div style="margin-bottom:2mm"><span class="btn off">Cada día</span> <span class="btn off">Días de la semana</span> <span class="btn" style="background:#2e4a33">✓ Cada N días</span> <span class="btn off">Fechas concretas</span> <span class="btn off">A demanda</span></div>
+          <div style="margin:1mm 0 2mm">Cada <span class="btn" style="margin:0">−</span> <b style="font-size:10pt">&nbsp;2&nbsp;</b> <span class="btn" style="margin:0">+</span> días (alternos)</div>
+          <div class="cal">
+            <div class="calh">‹ &nbsp; Noviembre 2026 &nbsp; ›</div>
+            <div class="g7 wk"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+            <div class="g7">
+              <span></span><span></span><span></span><span></span><span></span><span></span><span class="p">1</span>
+              <span class="p">2</span><span class="p">3</span><span class="p">4</span><span class="p">5</span><span class="p">6</span><span class="p">7</span><span class="p">8</span>
+              <span class="p">9</span><span class="p">10</span><span class="p">11</span><span class="on today">12</span><span>13</span><span class="on">14</span><span>15</span>
+              <span class="on">16</span><span>17</span><span class="on">18</span><span>19</span><span class="on">20</span><span>21</span><span class="on">22</span>
+              <span>23</span><span class="on">24</span><span>25</span><span class="on">26</span><span>27</span><span class="on">28</span><span>29</span>
+              <span class="on">30</span><span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="cap">Así se ve después de acercar la pegatina.</div>
+      <div class="cap">«Cada 2 días»: los días con toma salen marcados.</div>
     </div>
   </div>
   <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>6</span></div>
 </section>
 
-<!-- ============ ALARMA ============ -->
+<!-- ============ VARIAS TOMAS + FIJAR ============ -->
 <section class="page">
-  <h2><span class="n">7</span>Cuando suena la alarma</h2>
+  <h2><span class="n">7</span>Varias tomas al día con una sola pegatina</h2>
   <div class="cols">
     <div>
-      <p>Si llega la hora límite y no has acercado la pegatina, el móvil <b>pita muy fuerte, vibra</b> y la pantalla <b>parpadea en rojo</b>. Suena aunque el móvil esté en silencio. El botón de atrás no la apaga: está hecho así a propósito.</p>
+      <p>Si algo toca <b>varias veces al día</b> (por ejemplo, una pastilla cada 8 horas, o lavarte los dientes tres veces), <b>no hace falta</b> crearlo varias veces ni poner varias pegatinas:</p>
+      <ol class="steps">
+        <li>Al crearlo o editarlo, en <b>Horario de la toma</b>, pon la primera franja.</li>
+        <li>Toca <span class="ui">+ Añadir toma</span> y pon la segunda. Repite para las demás (hasta 8).</li>
+        <li>Para quitar una, toca la <span class="ui">✕</span> de su derecha.</li>
+        <li>Toca <span class="ui">Guardar</span>.</li>
+      </ol>
+      <div class="box tip"><span class="t">¿Cómo sabe qué toma apuntar?</span>
+        <p>Al acercar la pegatina se apunta <b>la toma que está en su franja</b> (o la que empieza en menos de 30 minutos). Si no toca ninguna, te dice cuándo es la próxima. Cada toma tiene <b>su propio aviso y su propia alarma</b>.</p>
+      </div>
+      <p style="font-size:9.5pt;color:var(--muted)">Las franjas no pueden solaparse: si una acaba a las 10:00, la siguiente debe empezar a las 10:00 o más tarde. Si te equivocas, la app te avisa al guardar.</p>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>12:00</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#151a17;min-height:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm"><span class="sm">Cancelar</span><b>Editar</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
+          <div class="sm">Nombre</div><div style="margin-bottom:2.5mm">✅ Lavarme los dientes</div>
+          <div class="ok" style="font-size:6.8pt">Tomas del día (3)</div>
+          <div class="slot"><b>1.</b> <span class="btn">Desde 08:00</span> <span class="btn">Hasta 09:30</span> <span class="x">✕</span></div>
+          <div class="slot"><b>2.</b> <span class="btn">Desde 14:30</span> <span class="btn">Hasta 16:00</span> <span class="x">✕</span></div>
+          <div class="slot"><b>3.</b> <span class="btn">Desde 22:00</span> <span class="btn">Hasta 23:30</span> <span class="x">✕</span></div>
+          <div><span class="btn">+ Añadir toma</span></div>
+          <div class="sm" style="margin-top:2mm">Con la misma pegatina se registra la toma que esté en curso. Cada una tiene su propia alarma.</div>
+        </div>
+      </div>
+      <div class="cap">Tres tomas al día con una sola pegatina.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:7mm"><span class="n">8</span>Fijar elementos arriba (📌)</h2>
+  <div class="cols">
+    <div>
+      <p>Si tienes muchos elementos, puedes <b>fijar</b> los más importantes para que salgan <b>siempre arriba</b> de la lista:</p>
+      <ul class="dots">
+        <li>Toca la chincheta <span class="ui">📌</span> de su tarjeta, al lado del interruptor. Se ve más intensa cuando está fijado.</li>
+        <li>Para quitarlo, vuelve a tocarla.</li>
+        <li>Los fijados se ordenan entre ellos por hora; el resto va debajo.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>12:05</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:0">
+          <div class="card"><div class="nm">💊 Concerta 18mg <span class="pin">📌</span></div><div class="sm">Cada día · 07:45–10:00</div></div>
+          <div class="card"><div class="nm">🌿 Magnesio <span class="pin off">📌</span></div><div class="sm">Cada día · 20:00–23:00</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>7</span></div>
+</section>
+
+<!-- ============ DÍA A DÍA ============ -->
+<section class="page">
+  <h2><span class="n">9</span>El día a día</h2>
+  <div class="cols">
+    <div>
+      <ol class="steps">
+        <li>Al empezar la franja, el móvil te avisa con una <b>notificación</b>: «Hora de tomar…», «Hora de medir…» o «Hora de…».</li>
+        <li>Tómatelo, mídete o hazlo.</li>
+        <li><b>Desbloquea el móvil</b> y acerca la pegatina a la parte de atrás. No hace falta abrir la app.</li>
+        <li>Verás <b>«✔ Toma registrada»</b> (en las mediciones, se abre el formulario: página 11). ¡Listo! Esa toma ya no hará sonar la alarma.</li>
+      </ol>
+      <div class="box tip"><span class="t">Trucos</span>
+        <ul class="dots">
+          <li>Puedes registrarla desde <b>30 minutos antes</b> de que empiece la franja.</li>
+          <li>La mayoría de móviles solo leen pegatinas con la pantalla <b>encendida y desbloqueada</b>.</li>
+          <li>Cada tarjeta muestra el estado de cada toma: <b>Pendiente</b>, <b>¡Toca ahora!</b>, <b>✔ Tomada hoy a las…</b> o <b>✖ No realizada</b>.</li>
+          <li>Si un día no toca, al acercar la pegatina te dirá «Hoy no toca» y la próxima fecha.</li>
+          <li><span class="ui">Cancelar toma</span> en la tarjeta salta solo la toma actual (por ejemplo, si el médico te la ha quitado hoy). Queda en el historial.</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>15:02</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:0">
+          <div class="ttl">MediTag <span>🔔 Alarma</span></div>
+          <div class="card"><div class="nm">💊 Pastilla de la mañana <span class="pin">📌</span></div><div class="sm">Cada día · 08:00–10:00</div><div class="ok" style="margin-top:1mm">✔ Tomada hoy a las 08:42</div></div>
+          <div class="card"><div class="nm">✅ Lavarme los dientes <span class="pin off">📌</span></div><div class="sm">Cada día · 08:00–09:30, 14:30–16:00, 22:00–23:30</div>
+            <div class="sl"><b>08:00–09:30</b> <span class="ok">✔ Hecho a las 08:12</span></div>
+            <div class="sl"><b>14:30–16:00</b> <span class="due">¡Toca ahora!</span></div>
+            <div class="sl"><b>22:00–23:30</b> <span style="color:#9aa59d">Pendiente · desde 22:00</span></div>
+            <span class="btn">Cancelar toma de 14:30</span></div>
+          <div class="toast">✔ Toma registrada: Lavarme los dientes (14:30–16:00) a las 15:02</div>
+        </div>
+      </div>
+      <div class="cap">Una tarjeta con tres tomas: cada una con su estado.</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>8</span></div>
+</section>
+
+
+<!-- ============ ALARMA ============ -->
+<section class="page">
+  <h2><span class="n">10</span>Cuando suena la alarma</h2>
+  <div class="cols">
+    <div>
+      <p>Si llega la hora límite y no has acercado la pegatina (o, en una medición, no has guardado los valores), el móvil <b>pita muy fuerte, vibra</b> y la pantalla <b>parpadea en rojo</b>. Suena aunque el móvil esté en silencio. El botón de atrás no la apaga: está hecho así a propósito.</p>
       <h3>Para pararla</h3>
       <ol class="steps">
         <li>Tómate el medicamento.</li>
         <li>Desbloquea el móvil.</li>
-        <li>Acerca la pegatina. La alarma se para y la toma queda registrada.</li>
+        <li>Acerca la pegatina. La alarma se para y la toma queda registrada. En una medición, toca <span class="ui">Introducir valores</span> o acerca la pegatina y guarda el formulario.</li>
       </ol>
       <h3>Si hoy no debes tomarlo</h3>
       <p>Por ejemplo, porque tu médico te lo ha retirado ese día: toca <span class="ui">Cancelar toma de…</span> y confirma. La alarma se para y queda apuntado en el historial que ese día se canceló. También puedes cancelar antes de que suene, desde la tarjeta del medicamento.</p>
@@ -357,7 +483,7 @@
     </div>
   </div>
 
-  <h2 style="margin-top:7mm"><span class="n">8</span>Si no estabas cerca del móvil</h2>
+  <h2 style="margin-top:7mm"><span class="n">11</span>Si no estabas cerca del móvil</h2>
   <div class="cols">
     <div>
       <p>Si nadie para la alarma, se apaga sola pasado un rato (30 minutos, si no lo cambias) y <b>vuelve a sonar</b> más tarde, dos veces más. Si aun así no hay respuesta, la toma queda como <b>«No tomada»</b> y aparece una <b>pantalla de aviso</b>: lo primero que verás al coger el móvil.</p>
@@ -378,12 +504,12 @@
       <div class="cap">Aviso de toma no realizada.</div>
     </div>
   </div>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>7</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>9</span></div>
 </section>
 
 <!-- ============ AJUSTES, COPIA, ACTUALIZAR ============ -->
 <section class="page">
-  <h2><span class="n">9</span>Ajustes de la alarma</h2>
+  <h2><span class="n">12</span>Ajustes de la alarma</h2>
   <p>Toca <span class="ui">🔔 Alarma</span>, arriba a la derecha. Cuando termines, toca <span class="ui">Guardar</span>.</p>
   <table>
     <tr><th style="width:44mm">Ajuste</th><th>Qué hace</th></tr>
@@ -394,7 +520,7 @@
     <tr><td><b>🔔 Probar alarma</b></td><td>Hace sonar la alarma <b>para que la oigas</b>, sin tocar ninguna toma. Se para con <span class="ui">Detener prueba</span> o acercando cualquier pegatina. Úsalo el primer día para comprobar que todo va bien.</td></tr>
   </table>
 
-  <h2 style="margin-top:8mm"><span class="n">10</span>Copia de seguridad y cambio de móvil</h2>
+  <h2 style="margin-top:8mm"><span class="n">13</span>Copia de seguridad y cambio de móvil</h2>
   <p>Abajo del todo, en la pantalla principal, toca <span class="ui">Copia de seguridad</span>:</p>
   <ul class="dots">
     <li><span class="ui">Exportar a archivo…</span> guarda tus elementos, el historial y las mediciones en un archivo. Guárdalo en Drive o mándatelo por correo.</li>
@@ -402,58 +528,162 @@
   </ul>
   <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos.</p>
 
-  <h2 style="margin-top:8mm"><span class="n">11</span>Informes, anclar y actualizaciones</h2>
-  <ul class="dots">
-    <li>El botón <span class="ui">📊 Informes</span> muestra el historial del último año (tomas, cancelaciones, alarmas sin respuesta…) y crea informes para el médico (ver página 9).</li>
-    <li>Una vez por semana la app mira si hay una <b>versión nueva</b> y te avisa con una notificación: tócala para descargarla e instálala encima (<b>no pierdes nada</b>). También puedes mirarlo cuando quieras en <span class="ui">Acerca de</span> → <span class="ui">Buscar actualizaciones</span>.</li>
-    <li>Toca <span class="ui">📌</span> en una tarjeta para <b>anclarla</b>: saldrá siempre arriba de la lista.</li>
-  </ul>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>8</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>10</span></div>
 </section>
 
 <!-- ============ MEDICIONES ============ -->
 <section class="page">
-  <h2><span class="n">12</span>Mediciones, complementos y hábitos</h2>
-  <p class="lead">Además de medicamentos, MediTag puede recordarte y apuntar otras cosas. Al crear un elemento con <span class="ui">+ Añadir</span>, elige arriba su <b>Tipo</b>:</p>
-  <table>
-    <tr><th style="width:42mm">Tipo</th><th>Para qué</th></tr>
-    <tr><td><b>💊 Medicamento</b></td><td>Lo de siempre: pastillas, jarabes, inhaladores…</td></tr>
-    <tr><td><b>🌿 Complemento</b></td><td>Vitaminas, magnesio, omega 3… Funciona igual, pero sale aparte al exportar.</td></tr>
-    <tr><td><b>🩺 Medición</b></td><td>Tensión, saturación de oxígeno, glucemia, peso o temperatura. Pega la pegatina en el tensiómetro, el glucómetro o la báscula.</td></tr>
-    <tr><td><b>✅ Hábito</b></td><td>Cualquier cosa que se te olvide: lavarte los dientes, beber agua, estirar…</td></tr>
-  </table>
-
-  <h3>Cómo se apunta una medición</h3>
-  <ol class="steps">
-    <li>Al crearla, en <b>Qué se mide</b> marca lo que vas a apuntar (por ejemplo, <i>Tensión y pulso</i>).</li>
-    <li>Mídete con tu aparato como siempre.</li>
-    <li>Acerca la pegatina al móvil: se abre un <b>formulario</b>. Escribe los números que marca el aparato. Puedes añadir una nota («después de caminar»).</li>
-    <li>Toca <span class="ui">Guardar</span>. La medición queda apuntada y, si sonaba la alarma, se para. <b>Si cierras sin guardar, no cuenta.</b></li>
-  </ol>
-  <p>También puedes apuntar una medición sin pegatina (por ejemplo, si te la tomaron en la farmacia) con el botón <span class="ui">Añadir medición</span> de su tarjeta.</p>
-  <div class="box warn"><span class="t">La app no interpreta los valores</span>
-    <p>MediTag solo guarda los números. Si escribes uno muy raro (por ejemplo 1200 en lugar de 120), te pregunta si está bien escrito, pero <b>no te dice si tu tensión o tu azúcar están bien o mal</b>: eso lo valora tu médico.</p>
+  <h2><span class="n">14</span>Mediciones: tensión, glucemia, peso…</h2>
+  <div class="cols">
+    <div>
+      <p>Con el tipo <b>🩺 Medición</b>, MediTag te recuerda medirte y <b>guarda los valores</b> para el médico. Pega la pegatina en el aparato (tensiómetro, glucómetro, báscula…).</p>
+      <h3>Crear la medición</h3>
+      <ol class="steps">
+        <li><span class="ui">+ Añadir</span> → Tipo <span class="ui">🩺 Medición</span>.</li>
+        <li>En <b>Qué se mide</b> marca lo que vas a apuntar (puedes marcar varias cosas). El resto, como siempre.</li>
+      </ol>
+      <h3>Apuntar los valores</h3>
+      <ol class="steps">
+        <li>Mídete con tu aparato.</li>
+        <li>Acerca la pegatina: se abre un <b>formulario</b> con el teclado de números.</li>
+        <li>Escribe lo que marca el aparato. Puedes añadir una nota («después de caminar»).</li>
+        <li>Toca <span class="ui">Guardar</span>. Ahí queda hecha la toma y, si sonaba la alarma, se para. <b>Si cierras sin guardar, no cuenta.</b></li>
+      </ol>
+      <p>Sin pegatina (por ejemplo, si te la tomaron en la farmacia): botón <span class="ui">Añadir medición</span> de su tarjeta. La tarjeta muestra siempre la <b>última medición</b>.</p>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>08:10</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#151a17;min-height:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5mm"><span class="sm">Cancelar</span><b>🩺 Tensión</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
+          <div class="sm" style="margin-bottom:2mm">Toma de 08:00–09:00</div>
+          <div class="ok" style="font-size:6.8pt">Tensión arterial</div>
+          <div style="display:flex;gap:1.5mm;margin-bottom:2mm">
+            <div class="fld"><span class="sm">Alta (sistólica)</span><br>125 <span class="sm">mmHg</span></div>
+            <div class="fld"><span class="sm">Baja (diastólica)</span><br>82 <span class="sm">mmHg</span></div>
+          </div>
+          <div class="fld" style="margin-bottom:2mm"><span class="sm">Pulso (opcional)</span><br>71 <span class="sm">lpm</span></div>
+          <div class="fld" style="margin-bottom:2mm"><span class="sm">Nota (opcional)</span><br><span class="sm">p.ej. después de caminar</span></div>
+          <div class="sm">La app solo guarda los valores; no los interpreta.</div>
+        </div>
+      </div>
+      <div class="cap">Formulario de tensión.</div>
+    </div>
   </div>
+  <table style="margin-top:3mm">
+    <tr><th style="width:42mm">Qué se mide</th><th>Qué se escribe</th></tr>
+    <tr><td><b>Tensión y pulso</b></td><td>Alta (sistólica) y baja (diastólica) en mmHg; pulso en latidos por minuto (opcional).</td></tr>
+    <tr><td><b>Saturación de oxígeno</b></td><td>SatO₂ en % (y pulso, si quieres).</td></tr>
+    <tr><td><b>Glucemia</b></td><td>Glucosa en mg/dL y el momento: <i>en ayunas</i>, <i>antes de comer</i>, <i>después de comer</i> u <i>otro</i>.</td></tr>
+    <tr><td><b>Peso</b> · <b>Temperatura</b></td><td>Kilos (con decimales: 72,5) · grados (36,6).</td></tr>
+  </table>
+  <div class="box alert"><span class="t">La tensión, como la marca el aparato: 120 y 80, no 12 y 8</span>
+    <p>Aunque se diga «tengo 12 y 8», el tensiómetro marca <b>120</b> y <b>80</b> (mmHg). Escribe esos números. Si escribes un valor muy raro, la app te pregunta si está bien escrito, pero <b>no te dice si tu tensión o tu azúcar están bien o mal</b>: eso lo valora tu médico.</p>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>11</span></div>
+</section>
 
-  <h3>Informes para el médico</h3>
-  <ol class="steps">
-    <li>Toca <span class="ui">📊 Informes</span>, abajo en la pantalla principal.</li>
-    <li>Elige el <b>periodo</b> (30 días, 3 meses, 12 meses o todo) y <b>qué incluir</b> (medicación, complementos, mediciones, hábitos).</li>
-    <li>Toca el botón verde <b>Excel</b> (todos los datos, una hoja para cada cosa) o el rojo <b>PDF</b> (informe con resumen de cumplimiento, gráficas y tablas). Elige dónde guardarlo y envíalo por correo o imprímelo.</li>
-  </ol>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>9</span></div>
+<!-- ============ INFORMES ============ -->
+<section class="page">
+  <h2><span class="n">15</span>Informes para el médico</h2>
+  <div class="cols">
+    <div>
+      <p>MediTag guarda lo que haces (tomas, cancelaciones, alarmas sin respuesta…) <b>durante un año</b>, y las mediciones <b>siempre</b>. Con eso crea un informe para llevar a la consulta o enviar por correo.</p>
+      <ol class="steps">
+        <li>En la pantalla principal, abajo, toca <span class="ui">📊 Informes</span>.</li>
+        <li>Elige el <b>periodo</b>: 30 días, 3 meses, 12 meses o todo.</li>
+        <li>Elige <b>qué incluir</b>: medicación, complementos, mediciones y hábitos (toca para quitar o poner).</li>
+        <li>Toca el botón que quieras: <b style="color:#1E7B45">📗 Excel</b> o <b style="color:#B3261E">📕 PDF</b>.</li>
+        <li>Elige dónde guardarlo (por ejemplo, Descargas o Drive). El PDF se abre solo para que lo veas o lo compartas.</li>
+      </ol>
+      <p>Debajo de los botones está el <b>historial</b> completo, por si quieres consultarlo en el móvil.</p>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>18:30</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#151a17;min-height:0">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2.5mm"><b style="font-size:9pt">📊 Informes</b><span class="ok">Cerrar</span></div>
+          <div class="ok" style="font-size:6.8pt">Periodo</div>
+          <div style="margin-bottom:2mm"><span class="btn off">30 días</span> <span class="btn" style="background:#2e4a33">✓ 3 meses</span> <span class="btn off">12 meses</span> <span class="btn off">Todo</span></div>
+          <div class="ok" style="font-size:6.8pt">Qué incluir</div>
+          <div style="margin-bottom:3mm"><span class="btn" style="background:#2e4a33">✓ 💊 Medicación</span> <span class="btn" style="background:#2e4a33">✓ 🩺 Mediciones</span> <span class="btn off">🌿 Complementos</span></div>
+          <div style="display:flex;gap:2mm">
+            <div class="big-btn" style="background:#1E7B45"><div style="font-size:13pt">📗</div><b>Excel</b><div>Todos los datos</div></div>
+            <div class="big-btn" style="background:#B3261E"><div style="font-size:13pt">📕</div><b>PDF</b><div>Resumen y gráficas</div></div>
+          </div>
+          <div style="margin-top:3mm;font-weight:600">Historial (124)</div>
+          <div class="sm">12/11/2026 08:42 · Tomada: Concerta 18mg</div>
+          <div class="sm">12/11/2026 08:10 · Medición registrada: Tensión — 125/82 mmHg · 71 lpm</div>
+        </div>
+      </div>
+      <div class="cap">Pantalla de informes.</div>
+    </div>
+  </div>
+  <div class="cols2" style="margin-top:4mm">
+    <div class="box tip" style="margin:0"><span class="t">📗 Excel: todos los datos</span>
+      <p>Una <b>hoja para cada cosa</b>: Medicación, Complementos, Hábitos, Tensión, Saturación, Glucemia, Peso, Temperatura… Cada fila con fecha, hora y valores. Se abre con Excel, Google Sheets o LibreOffice.</p>
+    </div>
+    <div class="box" style="margin:0;background:#FDECEA"><span class="t">📕 PDF: informe para leer</span>
+      <ul class="dots" style="margin:0">
+        <li><b>Cumplimiento</b>: tomas hechas, con retraso, canceladas, no realizadas y %.</li>
+        <li><b>Incidencias</b>: qué tomas fallaron y cuándo.</li>
+        <li>Para cada medición: <b>media, mínimo y máximo</b>, una <b>gráfica</b> de evolución y la tabla.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>12</span></div>
+</section>
+
+<!-- ============ ACTUALIZACIONES ============ -->
+<section class="page">
+  <h2><span class="n">16</span>Actualizaciones y «Acerca de»</h2>
+  <div class="cols">
+    <div>
+      <h3 style="margin-top:0">Aviso automático cada semana</h3>
+      <p>Una vez por semana, si hay internet, MediTag mira si existe una <b>versión nueva</b>. Si la hay, te llega una <b>notificación</b>:</p>
+      <ol class="steps">
+        <li>Toca la notificación «Hay una versión nueva de MediTag». Se descarga un archivo como <b>MediTag-v1.10.2.apk</b> (lleva el número de versión).</li>
+        <li>Ábrelo y toca <span class="ui">Actualizar</span> o <span class="ui">Instalar</span>. Se instala <b>encima</b>: no pierdes medicamentos, mediciones ni historial.</li>
+      </ol>
+      <p>Solo avisa una vez por cada versión. Para comprobarlo cuando quieras: <span class="ui">Acerca de</span> → <span class="ui">Buscar actualizaciones</span> → <span class="ui">Descargar</span>.</p>
+      <div class="box tip"><span class="t">¿Prefieres que no se conecte?</span>
+        <p>En <span class="ui">Acerca de</span>, apaga <b>«Comprobar actualizaciones cada semana»</b>. MediTag no envía ningún dato tuyo: solo mira qué número de versión hay publicado.</p>
+      </div>
+      <h3>Qué más hay en «Acerca de»</h3>
+      <ul class="dots">
+        <li>La <b>versión</b> que tienes instalada.</li>
+        <li>Un resumen de <b>todo lo que puede hacer</b> la app.</li>
+        <li>Enlaces al código y para <b>informar de un problema</b>.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>10:00</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#1d2420;min-height:0">
+          <div class="notif"><div class="sm">MediTag · ahora</div><b>Hay una versión nueva de MediTag: 1.10.2</b><div class="sm" style="color:#ccd">Toca para descargarla e instálala encima (no se pierde nada).</div></div>
+          <div style="margin-top:4mm;background:#2a302c;border-radius:3mm;padding:3mm">
+            <b style="font-size:9pt">Acerca de MediTag</b>
+            <div style="margin:1.5mm 0">Versión 1.10.1</div>
+            <div class="sm" style="margin-bottom:2mm">💊🌿🩺✅ Medicamentos, complementos, mediciones y hábitos · 📊 Informes en Excel o PDF · 📌 Fijar arriba…</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2mm"><span>Comprobar actualizaciones cada semana</span><span class="sw"></span></div>
+            <span class="btn">Buscar actualizaciones</span>
+          </div>
+        </div>
+      </div>
+      <div class="cap">Aviso de versión nueva y «Acerca de».</div>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>13</span></div>
 </section>
 
 <!-- ============ PROBLEMAS ============ -->
 <section class="page">
-  <h2><span class="n">13</span>Si algo no funciona</h2>
+  <h2><span class="n">17</span>Si algo no funciona</h2>
   <table>
     <tr><th style="width:56mm">Problema</th><th>Qué hacer</th></tr>
     <tr><td><b>No lee la pegatina</b></td><td>Comprueba que el <b>NFC está activado</b> y el móvil <b>desbloqueado</b>. Mueve la pegatina despacio por toda la espalda del móvil. Si tienes una funda gruesa o con metal o imanes, quítala.</td></tr>
-    <tr><td><b>Dice «Etiqueta no registrada»</b></td><td>Esa pegatina no está unida a ningún medicamento. Entra en el medicamento con <span class="ui">Editar</span> y toca <span class="ui">Escanear</span>.</td></tr>
+    <tr><td><b>Dice «Etiqueta no registrada»</b></td><td>Esa pegatina no está unida a ningún elemento. Entra en el elemento con <span class="ui">Editar</span> y toca <span class="ui">Escanear</span>.</td></tr>
     <tr><td><b>La alarma no sonó</b></td><td>Revisa que no quede ningún <b>aviso rojo</b> en la app, sobre todo el de la batería. En Xiaomi, Huawei, Oppo, Realme o Samsung, activa el <b>inicio automático</b> (página 4). Haz una prueba con <span class="ui">🔔 Probar alarma</span>.</td></tr>
     <tr><td><b>Suena aunque ya me la tomé</b></td><td>Seguramente no acercaste la pegatina o no llegó a leerse. Acércala ahora: la alarma se para y la toma queda apuntada.</td></tr>
     <tr><td><b>Al instalar dice «conflicto con un paquete existente»</b></td><td>Tienes una versión antigua instalada de otra forma. Haz una copia de seguridad, desinstala MediTag, instala la nueva e importa la copia.</td></tr>
+    <tr><td><b>Al escanear la medición no pasa nada</b></td><td>Comprueba que el elemento es de tipo <b>🩺 Medición</b>. Si se abre el formulario y lo cierras con <span class="ui">Cancelar</span>, no se guarda nada.</td></tr>
     <tr><td><b>He perdido una pegatina</b></td><td>Pega una nueva, entra en el medicamento con <span class="ui">Editar</span>, toca <span class="ui">Escanear</span> y acércala.</td></tr>
     <tr><td><b>Quiero pausar un medicamento</b></td><td>Usa el interruptor de su tarjeta y confirma con <span class="ui">Desactivar</span> (si no confirmas en 5 segundos, sigue activo). Mientras esté apagado, no avisa ni suena.</td></tr>
   </table>
@@ -471,7 +701,7 @@
   </div>
 
   <p style="margin-top:7mm;font-size:9pt;color:var(--muted)">MediTag es software libre y gratuito (licencia GNU GPL v3). Código fuente, novedades y avisos de errores en <span class="url">github.com/hombrelobo2/meditag</span>. Esta guía se puede copiar y repartir libremente.</p>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>10</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>14</span></div>
 </section>
 
 </body>
