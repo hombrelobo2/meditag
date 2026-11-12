@@ -43,6 +43,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 const val REPO_URL = "https://github.com/hombrelobo2/meditag"
+/** Manual de uso en PDF (siempre la última versión publicada en el repositorio). */
+const val MANUAL_URL = "$REPO_URL/raw/main/docs/MediTag-Guia-de-uso.pdf"
 const val APK_URL = "$REPO_URL/releases/download/ultima/MediTag.apk"
 
 /** Enlace al APK de una versión concreta, con su número en el nombre (MediTag-vX.Y.Z.apk). */
@@ -205,6 +207,9 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
                     )
                     null -> {}
                 }
+                TextButton(onClick = {
+                    runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(MANUAL_URL))) }
+                }) { Text("📖 Manual de uso (PDF)") }
                 TextButton(onClick = {
                     runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO_URL))) }
                 }) { Text("Código fuente en GitHub") }
