@@ -60,14 +60,14 @@ object AutoUpdate {
     }
 
     /** Muestra el aviso si esta versión no se había avisado ya. */
-    fun notifyIfNew(ctx: Context, version: String) {
+    fun notifyIfNew(ctx: Context, version: String, url: String) {
         val p = MedRepo.prefs(ctx)
         if (p.getString(KEY_NOTIFIED, null) == version) return
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
         val pi = PendingIntent.getActivity(
-            ctx, 4, Intent(Intent.ACTION_VIEW, Uri.parse(APK_URL)), PendingIntent.FLAG_IMMUTABLE
+            ctx, 4, Intent(Intent.ACTION_VIEW, Uri.parse(url)), PendingIntent.FLAG_IMMUTABLE
         )
         val n = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_notif)
@@ -87,7 +87,7 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
     override suspend fun doWork(): Result {
         if (!AutoUpdate.enabled(applicationContext)) return Result.success()
         return when (val r = UpdateCheck.check()) {
-            is UpdateCheck.Available -> { AutoUpdate.notifyIfNew(applicationContext, r.name); Result.success() }
+            is UpdateCheck.Available -> { AutoUpdate.notifyIfNew(applicationContext, r.name, r.url); Result.success() }
             is UpdateCheck.UpToDate -> Result.success()
             is UpdateCheck.Failed -> Result.retry()
         }

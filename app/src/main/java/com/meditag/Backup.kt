@@ -44,13 +44,17 @@ import java.time.LocalDateTime
 
 const val REPO_URL = "https://github.com/hombrelobo2/meditag"
 const val APK_URL = "$REPO_URL/releases/download/ultima/MediTag.apk"
+
+/** Enlace al APK de una versión concreta, con su número en el nombre (MediTag-vX.Y.Z.apk). */
+fun versionedApkUrl(version: String) = "$REPO_URL/releases/download/v$version/MediTag-v$version.apk"
 private const val VERSION_URL = "$REPO_URL/releases/download/ultima/version.json"
 
 /** Comprueba en GitHub la última versión publicada. Solo descarga un archivo pequeño; no envía datos. */
 object UpdateCheck {
     sealed interface Result
     data class UpToDate(val name: String) : Result
-    data class Available(val name: String) : Result
+    /** [url]: APK de esa versión, con su número en el nombre. */
+    data class Available(val name: String, val url: String) : Result
     data class Failed(val reason: String) : Result
 
     suspend fun check(): Result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -76,7 +80,8 @@ object UpdateCheck {
             c.disconnect()
             val remoteCode = o.getInt("versionCode")
             val remoteName = o.optString("versionName", remoteCode.toString())
-            if (remoteCode > BuildConfig.VERSION_CODE) Available(remoteName) else UpToDate(BuildConfig.VERSION_NAME)
+            val url = o.optString("apkUrl").ifBlank { versionedApkUrl(remoteName) }
+            if (remoteCode > BuildConfig.VERSION_CODE) Available(remoteName, url) else UpToDate(BuildConfig.VERSION_NAME)
         } catch (e: java.io.IOException) {
             Failed("sin conexión")
         } catch (e: Exception) {
@@ -191,7 +196,7 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
                             style = MaterialTheme.typography.bodySmall
                         )
                         Button(onClick = {
-                            runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(APK_URL))) }
+                            runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(r.url))) }
                         }) { Text("Descargar ${r.name}") }
                     }
                     is UpdateCheck.Failed -> Text(

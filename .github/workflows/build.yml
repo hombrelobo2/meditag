@@ -84,10 +84,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Lo consulta la app en "Acerca de → Buscar actualizaciones"
-          printf '{"versionName":"%s","versionCode":%s}\n' "$VERSION" "$VCODE" > version.json
+          # apkUrl: APK de esta versión con su número en el nombre (lo descarga la app)
+          URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/v$VERSION/$APK"
+          printf '{"versionName":"%s","versionCode":%s,"apkUrl":"%s"}\n' "$VERSION" "$VCODE" "$URL" > version.json
           cat version.json
           gh release delete ultima --yes --cleanup-tag || true
-          gh release create ultima MediTag.apk version.json \
+          gh release create ultima "$APK" MediTag.apk version.json \
             --title "Enlace fijo a la última versión ($VERSION)" \
-            --notes "Copia de la versión $VERSION con nombre fijo, para el código QR de la guía y el botón Buscar actualizaciones. Para ver el historial de versiones, mira las publicaciones vX.Y.Z." \
+            --notes "Última versión ($VERSION): descarga $APK. MediTag.apk es la misma versión con nombre fijo, solo para el código QR de la guía impresa. version.json lo usa la app para avisar de versiones nuevas. Para ver el historial de versiones, mira las publicaciones vX.Y.Z." \
             --latest=false
