@@ -240,6 +240,23 @@ fun BackupDialog(act: MainActivity, onDismiss: () -> Unit) {
                 Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Copia inmediata, arriba del todo (cuando la copia automática tiene carpeta)
+                if (auto && folderName != null) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            saveAuto(); AutoBackup.runNow(act)
+                            android.widget.Toast.makeText(act, "Haciendo la copia…", android.widget.Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("💾 Hacer una copia ahora") }
+                    if (last > 0) Text(
+                        "Última copia: " + java.time.Instant.ofEpochMilli(last).atZone(java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
+                            " · " + (AutoBackup.lastResult(act) ?: ""),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                }
                 Text("Guarda en un archivo los elementos (con su pauta y su pegatina), el historial y las mediciones, o recupéralos desde uno.")
                 TextButton(onClick = { onDismiss(); act.exportBackup() }) { Text("Exportar a archivo…") }
                 TextButton(onClick = { onDismiss(); act.importBackup() }) { Text("Importar desde archivo…") }
@@ -282,16 +299,6 @@ fun BackupDialog(act: MainActivity, onDismiss: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text("Las más antiguas se borran solas.", style = MaterialTheme.typography.bodySmall)
-                    if (last > 0) Text(
-                        "Última copia: " + java.time.Instant.ofEpochMilli(last).atZone(java.time.ZoneId.systemDefault())
-                            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-                            " · " + (AutoBackup.lastResult(act) ?: ""),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    OutlinedButton(enabled = folderName != null, onClick = {
-                        saveAuto(); AutoBackup.runNow(act)
-                        android.widget.Toast.makeText(act, "Haciendo la copia…", android.widget.Toast.LENGTH_SHORT).show()
-                    }) { Text("Hacer una copia ahora") }
                 }
             }
         },
