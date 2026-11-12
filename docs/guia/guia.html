@@ -123,12 +123,12 @@
     <div>2 · Instalar la app ……… 3</div><div>8 · Si no estabas cerca del móvil ……… 7</div>
     <div>3 · La primera vez: permisos ……… 4</div><div>9 · Ajustes de la alarma ……… 8</div>
     <div>4 · Añadir un medicamento ……… 5</div><div>10 · Copia de seguridad ……… 8</div>
-    <div>5 · Elegir la pauta ……… 6</div><div>11 · Historial y actualizaciones ……… 8</div>
+    <div>5 · Elegir la pauta ……… 6</div><div>11 · Informes y actualizaciones ……… 8</div>
     <div>6 · El día a día ……… 6</div><div>12 · Mediciones y hábitos ……… 9</div>
     <div></div><div>13 · Si algo no funciona ……… 10</div>
   </div>
 
-  <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.10 · noviembre 2026</span></div>
+  <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.10.1 · noviembre 2026</span></div>
 </section>
 
 <!-- ============ ANTES DE EMPEZAR ============ -->
@@ -172,7 +172,7 @@
     <div>
       <ol class="steps">
         <li>Abre la <b>cámara</b> del móvil y apunta al <b>código QR</b> de la portada. Toca el enlace que aparece en la pantalla.<br><span style="color:var(--muted)">Si tu cámara no lee códigos QR, abre el navegador (Chrome) y escribe la dirección de la portada. Allí toca <b>MediTag.apk</b>.</span></li>
-        <li>Se descargará un archivo llamado <b>MediTag.apk</b>. Si el móvil pregunta si quieres descargarlo, toca <span class="ui">Descargar</span>.</li>
+        <li>Se descargará un archivo llamado <b>MediTag.apk</b> (las actualizaciones posteriores llevan el número de versión, por ejemplo <b>MediTag-v1.10.1.apk</b>). Si el móvil pregunta si quieres descargarlo, toca <span class="ui">Descargar</span>.</li>
         <li>Cuando termine, toca <span class="ui">Abrir</span> en el aviso de descarga.<br><span style="color:var(--muted)">Si se te escapa, abre la app <b>Archivos</b> → <b>Descargas</b> y toca MediTag.apk.</span></li>
         <li>El móvil dirá que, por seguridad, no puede instalar apps de esta fuente. Toca <span class="ui">Ajustes</span> y activa <b>«Permitir de esta fuente»</b>. Vuelve atrás con la flecha.</li>
         <li>Toca <span class="ui">Instalar</span>.</li>
@@ -248,7 +248,8 @@
       <h3>Después, en la app</h3>
       <ol class="steps">
         <li>Toca <span class="ui">+ Añadir</span> (abajo a la derecha).</li>
-        <li>Escribe el <b>nombre</b> del medicamento, por ejemplo «Pastilla de la mañana».</li>
+        <li>Arriba, en <b>Tipo</b>, deja marcado <span class="ui">💊 Medicamento</span> (o elige complemento, medición o hábito: ver página 9).</li>
+        <li>Escribe el <b>nombre</b>, por ejemplo «Pastilla de la mañana».</li>
         <li>Toca <span class="ui">Escanear</span> y <b>acerca la pegatina</b> a la parte de atrás del móvil. Notarás una vibración y aparecerá un código (como 04:3D:72:…). Eso significa que ya está unida.</li>
         <li>En <b>Pauta</b>, elige cuándo te lo tomas (lo explicamos en la página siguiente). Lo normal es <span class="ui">Cada día</span>.</li>
         <li>En <b>Horario de la toma</b>, toca <span class="ui">Desde</span> y elige la hora a partir de la que te lo puedes tomar. Toca <span class="ui">Hasta</span> y elige la hora límite.</li>
@@ -262,8 +263,10 @@
     <div>
       <div class="phone"><div class="bar"><span>10:30</span><span>▮▮▮ ◔</span></div>
         <div class="scr" style="background:#151a17">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm"><span class="sm">Cancelar</span><b>Nuevo medicamento</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
-          <div style="border:1px solid #556;border-radius:1.5mm;padding:1.5mm;margin-bottom:2.5mm"><span class="sm">Nombre del medicamento</span><br>Pastilla de la mañana</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3mm"><span class="sm">Cancelar</span><b>Nuevo: medicamento</b><span class="btn" style="margin:0;background:#1f6b2a">Guardar</span></div>
+          <div class="ok" style="font-size:6.8pt">Tipo</div>
+          <div style="margin-bottom:2mm"><span class="btn" style="background:#2e4a33">✓ 💊 Medicamento</span> <span class="btn" style="color:#aab;border-color:#556">🌿 Complemento</span> <span class="btn" style="color:#aab;border-color:#556">🩺 Medición</span></div>
+          <div style="border:1px solid #556;border-radius:1.5mm;padding:1.5mm;margin-bottom:2.5mm"><span class="sm">Nombre</span><br>Pastilla de la mañana</div>
           <div class="ok" style="font-size:6.8pt">Etiqueta NFC</div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2.5mm">04:3D:72:18:CD:2A:81 <span class="btn" style="margin:0">Escanear</span></div>
           <div class="ok" style="font-size:6.8pt">Pauta</div>
@@ -315,8 +318,8 @@
       <div class="phone"><div class="bar"><span>08:42</span><span>▮▮▮ ◔</span></div>
         <div class="scr" style="min-height:82mm">
           <div class="ttl">MediTag <span>🔔 Alarma</span></div>
-          <div class="card"><div class="nm">Pastilla de la mañana</div><div class="sm">Cada día · 08:00–10:00</div><div class="ok" style="margin-top:1mm">✔ Tomada hoy a las 08:42</div></div>
-          <div class="card"><div class="nm">Pastilla de la noche</div><div class="sm">Cada día · 21:00–23:00</div><div style="margin-top:1mm;color:#9aa59d;font-weight:600">Pendiente · desde 21:00</div></div>
+          <div class="card"><div class="nm">💊 Pastilla de la mañana <span style="float:right">📌</span></div><div class="sm">Cada día · 08:00–10:00</div><div class="ok" style="margin-top:1mm">✔ Tomada hoy a las 08:42</div></div>
+          <div class="card"><div class="nm">💊 Pastilla de la noche <span style="float:right;opacity:.35">📌</span></div><div class="sm">Cada día · 21:00–23:00</div><div style="margin-top:1mm;color:#9aa59d;font-weight:600">Pendiente · desde 21:00</div></div>
           <div class="toast">✔ Toma registrada: Pastilla de la mañana a las 08:42</div>
         </div>
       </div>
@@ -394,12 +397,12 @@
   <h2 style="margin-top:8mm"><span class="n">10</span>Copia de seguridad y cambio de móvil</h2>
   <p>Abajo del todo, en la pantalla principal, toca <span class="ui">Copia de seguridad</span>:</p>
   <ul class="dots">
-    <li><span class="ui">Exportar a archivo…</span> guarda tus medicamentos y el historial en un archivo. Guárdalo en Drive o mándatelo por correo.</li>
+    <li><span class="ui">Exportar a archivo…</span> guarda tus elementos, el historial y las mediciones en un archivo. Guárdalo en Drive o mándatelo por correo.</li>
     <li><span class="ui">Importar desde archivo…</span> los recupera, por ejemplo en un móvil nuevo. <b>Sustituye</b> lo que haya en la app.</li>
   </ul>
   <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos.</p>
 
-  <h2 style="margin-top:8mm"><span class="n">11</span>Historial y actualizaciones</h2>
+  <h2 style="margin-top:8mm"><span class="n">11</span>Informes, anclar y actualizaciones</h2>
   <ul class="dots">
     <li>El botón <span class="ui">📊 Informes</span> muestra el historial del último año (tomas, cancelaciones, alarmas sin respuesta…) y crea informes para el médico (ver página 9).</li>
     <li>Una vez por semana la app mira si hay una <b>versión nueva</b> y te avisa con una notificación: tócala para descargarla e instálala encima (<b>no pierdes nada</b>). También puedes mirarlo cuando quieras en <span class="ui">Acerca de</span> → <span class="ui">Buscar actualizaciones</span>.</li>
