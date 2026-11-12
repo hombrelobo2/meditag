@@ -80,8 +80,8 @@ object UpdateCheck {
             c.disconnect()
             val remoteCode = o.getInt("versionCode")
             val remoteName = o.optString("versionName", remoteCode.toString())
-            val url = o.optString("apkUrl").ifBlank { versionedApkUrl(remoteName) }
-            if (remoteCode > BuildConfig.VERSION_CODE) Available(remoteName, url) else UpToDate(BuildConfig.VERSION_NAME)
+            val apkUrl = o.optString("apkUrl").ifBlank { versionedApkUrl(remoteName) }
+            if (remoteCode > BuildConfig.VERSION_CODE) Available(remoteName, apkUrl) else UpToDate(BuildConfig.VERSION_NAME)
         } catch (e: java.io.IOException) {
             Failed("sin conexión")
         } catch (e: Exception) {
