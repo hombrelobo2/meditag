@@ -140,6 +140,20 @@ class MainActivity : ComponentActivity() {
 
     fun exportBackup() = exportLauncher.launch(Backup.suggestedName())
 
+    /** Nombre de la carpeta de la copia automática (para mostrarla). */
+    var backupFolderName: String? by mutableStateOf<String?>(null)
+        private set
+
+    private val folderPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            AutoBackup.setFolder(this, uri)
+            backupFolderName = AutoBackup.folderName(this)
+            Toast.makeText(this, "Carpeta elegida: $backupFolderName", Toast.LENGTH_SHORT).show()
+        }
+
+    fun pickBackupFolder() = folderPicker.launch(AutoBackup.folder(this))
+
     private val sheetLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) { uri ->
             if (uri == null) return@registerForActivityResult
@@ -221,6 +235,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         refreshIssues()
         refreshSound()
+        backupFolderName = AutoBackup.folderName(this)
         nfc?.enableReaderMode(this, { tag -> onTag(Nfc.tagId(tag)) }, Nfc.READER_FLAGS, null)
     }
 
@@ -306,6 +321,8 @@ fun MainScreen(act: MainActivity) {
     var showAbout by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
     var showReports by remember { mutableStateOf(false) }
+    var compact by remember { mutableStateOf(ViewPrefs.compact(act)) }
+    var expanded by remember { mutableStateOf(emptySet<Int>()) } // desplegados en vista compacta
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
@@ -313,7 +330,13 @@ fun MainScreen(act: MainActivity) {
         topBar = {
             TopAppBar(
                 title = { Text("MediTag") },
-                actions = { TextButton(onClick = { showSound = true }) { Text("🔔 Alarma") } }
+                actions = {
+                    // Vista compacta (una línea por elemento) o ampliada (tarjeta completa)
+                    TextButton(onClick = { compact = !compact; ViewPrefs.setCompact(act, compact); expanded = emptySet() }) {
+                        Text(if (compact) "▤ Ampliar" else "☰ Compactar")
+                    }
+                    TextButton(onClick = { showSound = true }) { Text("🔔 Alarma") }
+                }
             )
         },
         floatingActionButton = {
@@ -351,6 +374,11 @@ fun MainScreen(act: MainActivity) {
                 )
             }
             items(meds, key = { it.id }) { med ->
+                if (compact && med.id !in expanded) {
+                    CompactRow(med, now) { expanded = expanded + med.id }
+                    return@items
+                }
+                if (compact) TextButton(onClick = { expanded = expanded - med.id }) { Text("▲ Plegar ${med.name}") }
                 MedCard(
                     med = med, now = now,
                     onEdit = { editor = med; showEditor = true },
@@ -558,4 +586,57 @@ fun ConfirmDisableDialog(med: Medication, onConfirm: () -> Unit, onDismiss: () -
         confirmButton = { TextButton(onClick = onConfirm) { Text("Desactivar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("No ($left)") } }
     )
+}
+
+/** Preferencias de la pantalla principal. */
+object ViewPrefs {
+    private const val KEY = "compact_view"
+    fun compact(ctx: android.content.Context) = MedRepo.prefs(ctx).getBoolean(KEY, false)
+    fun setCompact(ctx: android.content.Context, on: Boolean) = MedRepo.prefs(ctx).edit().putBoolean(KEY, on).apply()
+}
+
+/** Estado de hoy en pocas palabras, para la vista compacta. */
+fun shortStatus(med: Medication, now: LocalDateTime): Pair<String, Color> {
+    if (!med.enabled) return "Desactivado" to Color(0xFF9E9E9E)
+    if (med.mode == Mode.ON_DEMAND) {
+        val n = med.todayCount()
+        return (if (n > 0) "Hoy: $n" else "A demanda") to Color(0xFF00897B)
+    }
+    if (!med.isScheduledOn(now.toLocalDate())) {
+        val next = med.nextScheduled(now.toLocalDate().plusDays(1))
+        return (if (next != null) "Próx. ${fmtDay(next)}" else "Sin fechas") to Color(0xFF757575)
+    }
+    val st = med.slots.indices.map { med.slotStatus(it, now) }
+    val doneCount = st.count { it == DoseStatus.TAKEN }
+    return when {
+        st.any { it == DoseStatus.OVERDUE } -> "⚠ Fuera de plazo" to Color(0xFFC62828)
+        st.any { it == DoseStatus.DUE } -> "¡Toca ahora!" to Color(0xFFEF6C00)
+        st.any { it == DoseStatus.MISSED } -> "✖ No realizada" to Color(0xFFC62828)
+        st.all { it == DoseStatus.TAKEN || it == DoseStatus.SKIPPED || it == DoseStatus.INACTIVE } ->
+            (if (doneCount > 0) "✔ " + (if (med.multi) "$doneCount/${med.slots.size}" else hhmm(med.state(st.indexOfFirst { it == DoseStatus.TAKEN }).takenAt))
+            else "Cancelada") to Color(0xFF2E7D32)
+        else -> {
+            val next = med.slots.indices.first { st[it] == DoseStatus.PENDING }
+            ((if (med.multi && doneCount > 0) "✔ $doneCount/${med.slots.size} · " else "") + "a las ${fmt(med.slots[next].start)}") to Color(0xFF757575)
+        }
+    }
+}
+
+/** Una línea por elemento: icono, nombre, 📌 y estado de hoy. Tocar para desplegar. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CompactRow(med: Medication, now: LocalDateTime, onExpand: () -> Unit) {
+    val (txt, col) = shortStatus(med, now)
+    Card(onClick = onExpand, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${med.kind.icon} ${med.name}", Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium, maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                color = if (med.enabled) Color.Unspecified else Color(0xFF9E9E9E)
+            )
+            if (med.pinned) Text("📌", Modifier.padding(horizontal = 4.dp))
+            Text(txt, color = col, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+        }
+    }
 }

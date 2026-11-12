@@ -12,8 +12,8 @@ android {
         applicationId = "com.meditag"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.10.1"
+        versionCode = 19
+        versionName = "1.11"
     }
 
     // Firma de publicación: la clave privada NO está en el repositorio. En GitHub Actions
@@ -58,4 +58,5 @@ dependencies {
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
+    implementation("androidx.documentfile:documentfile:1.0.1")
 }

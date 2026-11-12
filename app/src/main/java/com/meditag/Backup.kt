@@ -219,11 +219,22 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
 
 @Composable
 fun BackupDialog(act: MainActivity, onDismiss: () -> Unit) {
+    var auto by remember { mutableStateOf(AutoBackup.enabled(act)) }
+    var days by remember { mutableStateOf(AutoBackup.days(act)) }
+    var excel by remember { mutableStateOf(AutoBackup.withExcel(act)) }
+    var keep by remember { mutableStateOf(AutoBackup.keep(act).toString()) }
+    val folderName = act.backupFolderName
+    val last = AutoBackup.lastRun(act)
+    fun saveAuto() = AutoBackup.set(act, auto, days, excel, keep.toIntOrNull() ?: 10)
+
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { saveAuto(); onDismiss() },
         title = { Text("Copia de seguridad") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text("Guarda en un archivo los elementos (con su pauta y su pegatina), el historial y las mediciones, o recupéralos desde uno.")
                 TextButton(onClick = { onDismiss(); act.exportBackup() }) { Text("Exportar a archivo…") }
                 TextButton(onClick = { onDismiss(); act.importBackup() }) { Text("Importar desde archivo…") }
@@ -231,9 +242,55 @@ fun BackupDialog(act: MainActivity, onDismiss: () -> Unit) {
                     "Importar sustituye los elementos, el historial y las mediciones actuales. El sonido de alarma elegido no se incluye.",
                     style = MaterialTheme.typography.bodySmall
                 )
+
+                androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Copia automática", Modifier.weight(1f), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it; saveAuto() })
+                }
+                Text(
+                    "Guarda la copia sola, cada cierto tiempo, en una carpeta que elijas: por ejemplo una carpeta de Google Drive (aparece en el selector si tienes la app de Drive), OneDrive o del propio móvil. MediTag no inicia sesión en ningún sitio.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (auto) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Carpeta: " + (folderName ?: "sin elegir"), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = { act.pickBackupFolder() }) { Text(if (folderName == null) "Elegir…" else "Cambiar…") }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(1 to "Cada día", 7 to "Cada semana").forEach { (d, label) ->
+                            androidx.compose.material3.FilterChip(
+                                selected = days == d, onClick = { days = d; saveAuto() }, label = { Text(label) }
+                            )
+                        }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.material3.Checkbox(checked = excel, onCheckedChange = { excel = it; saveAuto() })
+                        Text("Incluir también el Excel para el médico", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = keep, onValueChange = { v -> keep = v.filter { it.isDigit() }.take(3) },
+                        label = { Text("Copias que se conservan") }, singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Las más antiguas se borran solas.", style = MaterialTheme.typography.bodySmall)
+                    if (last > 0) Text(
+                        "Última copia: " + java.time.Instant.ofEpochMilli(last).atZone(java.time.ZoneId.systemDefault())
+                            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
+                            " · " + (AutoBackup.lastResult(act) ?: ""),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    OutlinedButton(enabled = folderName != null, onClick = {
+                        saveAuto(); AutoBackup.runNow(act)
+                        android.widget.Toast.makeText(act, "Haciendo la copia…", android.widget.Toast.LENGTH_SHORT).show()
+                    }) { Text("Hacer una copia ahora") }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } }
+        confirmButton = { TextButton(onClick = { saveAuto(); onDismiss() }) { Text("Cerrar") } }
     )
 }
 

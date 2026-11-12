@@ -21,6 +21,7 @@ class MediTagApp : Application() {
         Notifications.createChannels(this)
         AutoUpdate.createChannel(this)
         AutoUpdate.schedule(this)
+        AutoBackup.schedule(this)
     }
 }
 

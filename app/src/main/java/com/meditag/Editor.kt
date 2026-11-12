@@ -87,6 +87,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
     var error by remember { mutableStateOf<String?>(null) }
     var timeMsg by remember { mutableStateOf<Pair<Int, String>?>(null) } // (toma, mensaje)
     var confirmDelete by remember { mutableStateOf(false) }
+    var tagWarning by remember { mutableStateOf<String?>(null) }
     val waiting = act.tagCapture != null
 
     DisposableEffect(Unit) { onDispose { act.tagCapture = null } }
@@ -97,7 +98,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
         weekdays = weekdays, intervalDays = interval, anchorDate = anchor.toString(), dates = dates,
     )
 
-    fun save() {
+    fun save(force: Boolean = false) {
         val sorted = slots.sortedBy { it.start }
         val overlap = (1 until sorted.size).firstOrNull { sorted[it].start < sorted[it - 1].end }
         error = when {
@@ -133,6 +134,10 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
             activeSince = if (changed) System.currentTimeMillis() else base.activeSince,
             stateDate = today.toString(), states = states,
         )
+        // Aviso: otro elemento con la misma pegatina coincide en día y hora (un escaneo marcaría los dos)
+        if (!force) {
+            sharedTagConflict(med, MedRepo.all(ctx))?.let { tagWarning = it; return }
+        }
         MedRepo.upsert(ctx, med)
         // Para las alarmas que ya no correspondan (toma borrada o que ya no cuenta)
         for (k in 0 until MAX_SLOTS) {
@@ -142,6 +147,16 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
         MedRepo.logItem(ctx, if (initial == null) "Añadido" else "Modificado", med, null, med.describe())
         AlarmScheduler.schedule(ctx, med)
         onDismiss()
+    }
+
+    tagWarning?.let { w ->
+        AlertDialog(
+            onDismissRequest = { tagWarning = null },
+            title = { Text("Misma pegatina, mismo momento") },
+            text = { Text(w) },
+            confirmButton = { TextButton(onClick = { tagWarning = null; save(force = true) }) { Text("Guardar igualmente") } },
+            dismissButton = { TextButton(onClick = { tagWarning = null }) { Text("Revisar") } }
+        )
     }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -516,4 +531,31 @@ private const val LAST_START = LAST_MIN - MIN_RANGE
 
 fun pickTime(ctx: Context, current: Int, onPicked: (Int) -> Unit) {
     TimePickerDialog(ctx, { _, h, m -> onPicked(h * 60 + m) }, current / 60, current % 60, true).show()
+}
+
+/**
+ * Si otro elemento activo usa la misma pegatina y coincide con [med] el mismo día en franjas
+ * que se solapan (en los próximos 60 días), devuelve un aviso; si no, null.
+ */
+fun sharedTagConflict(med: Medication, all: List<Medication>): String? {
+    if (med.mode == Mode.ON_DEMAND || med.isMeasurement) return null
+    val others = all.filter {
+        it.id != med.id && it.enabled && it.mode != Mode.ON_DEMAND && !it.isMeasurement &&
+            it.tagId.equals(med.tagId, ignoreCase = true)
+    }
+    val today = LocalDate.now()
+    for (o in others) {
+        for (d in 0L until 60L) {
+            val day = today.plusDays(d)
+            if (!med.isScheduledOn(day) || !o.isScheduledOn(day)) continue
+            for (a in med.slots) for (b in o.slots) {
+                if (a.start < b.end && b.start < a.end) {
+                    return "«${o.name}» usa la misma pegatina y también toca el ${fmtDay(day)} " +
+                        "(${a.label} y ${b.label}). Al acercar la pegatina se marcarían los dos a la vez.\n\n" +
+                        "Si son turnos distintos, revisa que sus días o sus horas no coincidan."
+                }
+            }
+        }
+    }
+    return null
 }
