@@ -5,6 +5,8 @@ al móvil la pegatina NFC pegada al medicamento. Solo se usa el **UID** de la
 etiqueta, no hace falta grabar nada en ella.
 
 ## Funciones
+- **Tipos de elemento**: 💊 medicamento · 🌿 complemento alimenticio · 🩺 medición · ✅ hábito. Cada tipo tiene sus textos de alarma y aviso, y se exporta por separado.
+- **Mediciones**: tensión (sistólica/diastólica/pulso), saturación de O₂, glucemia (con momento: ayunas, antes/después de comer), peso y temperatura. Al escanear la pegatina se abre un formulario; la toma cuenta al guardar los valores. También se pueden añadir a mano («Añadir medición»). Hay control de erratas (pide confirmar valores muy raros) pero la app **no interpreta** los valores.
 - **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y una o varias **tomas al día** (franjas desde / hasta, con *+ Añadir toma*; no pueden solaparse).
 - **Varias tomas con una sola pegatina**: al escanear se registra la toma en curso (o la que empieza en 30 min); cada toma tiene su recordatorio, su alarma, su cancelación y su línea de estado.
 - **Pautas**: cada día · días de la semana (L–D) · cada N días (días alternos = 2) · fechas concretas
@@ -25,8 +27,10 @@ etiqueta, no hace falta grabar nada en ella.
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
 - Si el **NFC está apagado** cuando suena la alarma o sale el aviso de toma no realizada, la pantalla lo indica con un botón **Activar NFC**.
 - **Desactivar un medicamento** con su interruptor pide confirmación; si no se responde en 5 s, sigue activo.
-- **Historial** de tomas, cancelaciones y cambios del último año, en una pantalla aparte (botón *Historial*), exportable a Excel (.xlsx) para el médico.
-- **Copia de seguridad**: exportar e importar a un archivo JSON los medicamentos (pauta, pegatina, estado) y el historial.
+- **Historial** de tomas, cancelaciones y cambios del último año (las mediciones se guardan siempre), en una pantalla aparte (botón *Historial*).
+- **Exportar para el médico**: Excel (.xlsx) con una hoja por tipo (Medicación, Complementos, Hábitos, Tensión, Saturación, Glucemia, Peso, Temperatura), eligiendo periodo (30 días, 3 meses, 12 meses o todo) y qué incluir.
+- **Almacenamiento**: base de datos SQLite local para historial y mediciones (el historial de versiones anteriores se migra solo).
+- **Copia de seguridad**: exportar e importar a un archivo JSON los elementos (pauta, pegatina, estado), el historial y las mediciones. Se pueden importar copias de versiones anteriores.
 - **Acerca de**: versión de la app, enlace a este repositorio y **Buscar actualizaciones** (consulta `version.json` de la última release; es la única conexión a internet que hace la app, y solo al pulsar el botón).
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
