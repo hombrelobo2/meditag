@@ -19,6 +19,8 @@ class MediTagApp : Application() {
         super.onCreate()
         MedRepo.init(this)
         Notifications.createChannels(this)
+        AutoUpdate.createChannel(this)
+        AutoUpdate.schedule(this)
     }
 }
 

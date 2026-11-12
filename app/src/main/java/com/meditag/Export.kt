@@ -2,17 +2,12 @@ package com.meditag
 
 import android.content.Context
 import android.net.Uri
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +20,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -47,9 +58,12 @@ object Export {
     private fun num(v: Number?): Xlsx.Cell = v?.let { Xlsx.Num(it.toDouble()) } ?: Xlsx.Empty
     private fun txt(v: String?): Xlsx.Cell = if (v.isNullOrEmpty()) Xlsx.Empty else Xlsx.Text(v)
 
-    fun write(ctx: Context, uri: Uri, o: ExportOptions): String {
-        val since = if (o.days <= 0) 0L
+    /** Inicio del periodo elegido (epoch millis); 0 = todo. */
+    fun since(o: ExportOptions): Long = if (o.days <= 0) 0L
         else LocalDate.now().minusDays(o.days.toLong()).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    fun write(ctx: Context, uri: Uri, o: ExportOptions): String {
+        val since = since(o)
         val sheets = mutableListOf<Xlsx.Sheet>()
         var total = 0
 
@@ -115,47 +129,126 @@ object Export {
     }
 }
 
-/** Diálogo para elegir qué exportar y de qué periodo. */
+/**
+ * Pantalla de informes: se elige periodo y contenido y se genera un Excel o un PDF.
+ * Debajo se ve el historial completo del último año.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ExportDialog(onExport: (ExportOptions) -> Unit, onDismiss: () -> Unit) {
+fun ReportsScreen(
+    history: List<String>,
+    onExcel: (ExportOptions) -> Unit,
+    onPdf: (ExportOptions) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var days by remember { mutableStateOf(90) }
     var kinds by remember { mutableStateOf(Kind.entries.toSet()) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Exportar para el médico") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Se crea un Excel con una hoja para cada cosa: medicación, complementos, hábitos y cada tipo de medición.", style = MaterialTheme.typography.bodySmall)
-                Text("Periodo", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Export.PERIODS.forEach { (d, label) ->
-                        FilterChip(selected = days == d, onClick = { days = d }, label = { Text(label) })
-                    }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().systemBarsPadding()) {
+                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "📊 Informes", style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f).padding(start = 8.dp)
+                    )
+                    TextButton(onClick = onDismiss) { Text("Cerrar") }
                 }
-                Text("Qué incluir", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Kind.entries.forEach { k ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable { kinds = if (k in kinds) kinds - k else kinds + k },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(checked = k in kinds, onCheckedChange = { kinds = if (k in kinds) kinds - k else kinds + k })
+                HorizontalDivider()
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
                         Text(
-                            "${k.icon} " + when (k) {
-                                Kind.MEDICATION -> "Medicación"
-                                Kind.SUPPLEMENT -> "Complementos"
-                                Kind.MEASUREMENT -> "Mediciones (tensión, glucemia…)"
-                                Kind.HABIT -> "Hábitos"
-                            }
+                            "Crea un informe con tus tomas y mediciones para llevárselo o enviárselo a tu médico.",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
+                    item {
+                        Text("Periodo", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Export.PERIODS.forEach { (d, label) ->
+                                FilterChip(selected = days == d, onClick = { days = d }, label = { Text(label) })
+                            }
+                        }
+                    }
+                    item {
+                        Text("Qué incluir", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Kind.entries.forEach { k ->
+                                FilterChip(
+                                    selected = k in kinds,
+                                    onClick = { kinds = if (k in kinds) kinds - k else kinds + k },
+                                    label = {
+                                        Text(
+                                            "${k.icon} " + when (k) {
+                                                Kind.MEDICATION -> "Medicación"
+                                                Kind.SUPPLEMENT -> "Complementos"
+                                                Kind.MEASUREMENT -> "Mediciones"
+                                                Kind.HABIT -> "Hábitos"
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ExportCard(
+                                icon = "📗", title = "Excel", subtitle = "Todos los datos, una hoja para cada cosa",
+                                color = Color(0xFF1E7B45), enabled = kinds.isNotEmpty(),
+                                modifier = Modifier.weight(1f),
+                            ) { onExcel(ExportOptions(days, kinds)) }
+                            ExportCard(
+                                icon = "📕", title = "PDF", subtitle = "Informe con resumen, gráficas y tablas",
+                                color = Color(0xFFB3261E), enabled = kinds.isNotEmpty(),
+                                modifier = Modifier.weight(1f),
+                            ) { onPdf(ExportOptions(days, kinds)) }
+                        }
+                    }
+                    item {
+                        HorizontalDivider(Modifier.padding(top = 8.dp))
+                        Text(
+                            "Historial (${history.size})", style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 10.dp)
+                        )
+                        Text(
+                            "Se guarda el último año; las mediciones se guardan siempre.",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (history.isEmpty()) item { Text("Todavía no hay nada registrado.") }
+                    items(history) { Text(it, style = MaterialTheme.typography.bodyMedium) }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(enabled = kinds.isNotEmpty(), onClick = { onExport(ExportOptions(days, kinds)); onDismiss() }) { Text("Exportar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 }
 
+/** Botón grande de exportación (icono, título y descripción). */
+@Composable
+private fun ExportCard(
+    icon: String, title: String, subtitle: String, color: Color, enabled: Boolean,
+    modifier: Modifier = Modifier, onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(18.dp),
+        color = if (enabled) color else color.copy(alpha = 0.35f),
+        contentColor = Color.White,
+        shadowElevation = 3.dp,
+        modifier = modifier.heightIn(min = 128.dp),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 14.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(icon, fontSize = 30.sp)
+            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(subtitle, fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 15.sp)
+        }
+    }
+}

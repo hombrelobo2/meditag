@@ -125,6 +125,7 @@ data class Medication(
     val count: Int = 0,                     // a demanda: tomas ese día
     val kind: Kind = Kind.MEDICATION,
     val measures: Set<Measure> = emptySet(), // solo para Kind.MEASUREMENT
+    val pinned: Boolean = false,             // anclado: sale siempre arriba
 ) {
     val isMeasurement: Boolean get() = kind == Kind.MEASUREMENT
 
@@ -230,6 +231,7 @@ data class Medication(
         .put("countDate", countDate ?: "").put("count", count)
         .put("kind", kind.name)
         .put("measures", JSONArray(measures.map { it.name }))
+        .put("pinned", pinned)
 
     companion object {
         fun fromJson(o: JSONObject): Medication {
@@ -282,6 +284,7 @@ data class Medication(
                 countDate = o.optString("countDate").ifBlank { null },
                 count = o.optInt("count", 0),
                 kind = runCatching { Kind.valueOf(o.optString("kind", "MEDICATION")) }.getOrDefault(Kind.MEDICATION),
+                pinned = o.optBoolean("pinned", false),
                 measures = (o.optJSONArray("measures") ?: JSONArray()).let { m ->
                     (0 until m.length()).mapNotNull { runCatching { Measure.valueOf(m.getString(it)) }.getOrNull() }.toSet()
                 },
@@ -385,8 +388,9 @@ object MedRepo {
         )
     }
 
+    /** Orden de la lista: anclados primero; luego por hora (los "a demanda" al final). */
     private fun sorted(list: List<Medication>) =
-        list.sortedWith(compareBy({ it.mode == Mode.ON_DEMAND }, { it.startMin }))
+        list.sortedWith(compareBy({ !it.pinned }, { it.mode == Mode.ON_DEMAND }, { it.startMin }))
 
     fun all(ctx: Context): List<Medication> { init(ctx); return _meds.value }
 

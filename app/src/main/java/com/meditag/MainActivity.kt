@@ -38,6 +38,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -54,9 +55,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import kotlinx.coroutines.delay
@@ -152,6 +155,29 @@ class MainActivity : ComponentActivity() {
     fun exportReport(o: ExportOptions) {
         pendingExport = o
         sheetLauncher.launch(Export.fileName())
+    }
+
+    private val pdfLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val o = pendingExport ?: ExportOptions(0, Kind.entries.toSet())
+            runCatching { Report.write(this, uri, o) }
+                .onSuccess { msg ->
+                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                    // Lo abre para verlo o compartirlo
+                    runCatching {
+                        startActivity(
+                            Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/pdf")
+                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        )
+                    }
+                }
+                .onFailure { Toast.makeText(this, "No se pudo crear el PDF: ${it.message}", Toast.LENGTH_LONG).show() }
+        }
+
+    fun exportPdf(o: ExportOptions) {
+        pendingExport = o
+        pdfLauncher.launch(Report.fileName())
     }
     fun importBackup() = importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
 
@@ -279,8 +305,7 @@ fun MainScreen(act: MainActivity) {
     var showSound by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showBackup by remember { mutableStateOf(false) }
-    var showHistory by remember { mutableStateOf(false) }
-    var showExport by remember { mutableStateOf(false) }
+    var showReports by remember { mutableStateOf(false) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) { while (true) { delay(20_000); now = LocalDateTime.now() } }
 
@@ -343,7 +368,7 @@ fun MainScreen(act: MainActivity) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    OutlinedButton(onClick = { showHistory = true }) { OneLine("Historial (${history.size})") }
+                    FilledTonalButton(onClick = { showReports = true }) { OneLine("📊 Informes") }
                     OutlinedButton(onClick = { showBackup = true }) { OneLine("Copia de seguridad") }
                     OutlinedButton(onClick = { showAbout = true }) { OneLine("Acerca de") }
                 }
@@ -361,8 +386,12 @@ fun MainScreen(act: MainActivity) {
     if (showSound) SoundDialog(act, onDismiss = { showSound = false })
     if (showAbout) AboutDialog(act, onDismiss = { showAbout = false })
     if (showBackup) BackupDialog(act, onDismiss = { showBackup = false })
-    if (showHistory) HistoryDialog(history, onExport = { showExport = true }, onDismiss = { showHistory = false })
-    if (showExport) ExportDialog(onExport = { act.exportReport(it) }, onDismiss = { showExport = false })
+    if (showReports) ReportsScreen(
+        history = history,
+        onExcel = { act.exportReport(it) },
+        onPdf = { act.exportPdf(it) },
+        onDismiss = { showReports = false },
+    )
     act.pendingImport?.let { p ->
         ImportConfirmDialog(p, onConfirm = { act.confirmImport() }, onDismiss = { act.pendingImport = null })
     }
@@ -449,6 +478,11 @@ fun MedCard(
                     Text("${med.kind.icon} ${med.name}", style = MaterialTheme.typography.titleLarge)
                     Text(med.describe(), style = MaterialTheme.typography.bodyMedium)
                 }
+                // Anclar: sale siempre arriba de la lista
+                TextButton(
+                    onClick = { MedRepo.upsert(ctx, med.copy(pinned = !med.pinned)) },
+                    modifier = Modifier.alpha(if (med.pinned) 1f else 0.35f)
+                ) { Text("📌", fontSize = 20.sp) }
                 Switch(checked = med.enabled, onCheckedChange = onToggle)
             }
             Spacer(Modifier.height(6.dp))

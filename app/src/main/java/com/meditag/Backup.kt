@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -141,15 +142,39 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var checking by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<UpdateCheck.Result?>(null) }
+    var auto by remember { mutableStateOf(AutoUpdate.enabled(act)) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Acerca de MediTag") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text("Versión ${BuildConfig.VERSION_NAME}", fontWeight = FontWeight.SemiBold)
-                Text("Control de la toma de medicación con etiquetas NFC.")
-                Text("Software libre bajo licencia GNU GPL v3.", style = MaterialTheme.typography.bodySmall)
+                Text("Te ayuda a no olvidar la medicación y a comprobar que de verdad la has tomado, con pegatinas NFC.")
+                Text("Qué puede hacer", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    listOf(
+                        "💊🌿🩺✅ Medicamentos, complementos, mediciones y hábitos",
+                        "🏷️ Registrar acercando el móvil a la pegatina NFC",
+                        "🕒 Varias tomas al día con una sola pegatina",
+                        "📅 Pautas: cada día, días de la semana, cada N días, fechas concretas o a demanda",
+                        "🔔 Alarma que no para hasta registrarlo; sonido, duración y repeticiones a tu gusto",
+                        "⚠️ Aviso de toma no realizada al coger el móvil",
+                        "🩺 Tensión, saturación, glucemia, peso y temperatura",
+                        "📊 Informes para el médico en Excel o PDF con gráficas",
+                        "📌 Anclar elementos arriba de la lista",
+                        "💾 Copia de seguridad y avisos de versiones nuevas",
+                    ).joinToString("\n"),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text("Software libre bajo licencia GNU GPL v3. Sin anuncios; tus datos se quedan en tu móvil.", style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Comprobar actualizaciones cada semana", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it; AutoUpdate.setEnabled(act, it) })
+                }
                 OutlinedButton(
                     enabled = !checking,
                     onClick = {
@@ -222,41 +247,4 @@ fun ImportConfirmDialog(p: Backup.Pending, onConfirm: () -> Unit, onDismiss: () 
         confirmButton = { TextButton(onClick = onConfirm) { Text("Importar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
-}
-
-/** Historial completo en pantalla aparte (la lista principal queda solo con los medicamentos). */
-@Composable
-fun HistoryDialog(history: List<String>, onExport: () -> Unit, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize().systemBarsPadding()) {
-                Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Historial", style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp)
-                    )
-                    TextButton(onClick = onDismiss) { Text("Cerrar") }
-                }
-                Text(
-                    "Se guarda el último año (las mediciones, siempre). Puedes exportarlo a Excel para el médico.",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                if (history.isNotEmpty()) TextButton(
-                    onClick = onExport, modifier = Modifier.padding(horizontal = 8.dp)
-                ) { Text("📄 Exportar para el médico") }
-                HorizontalDivider()
-                if (history.isEmpty()) {
-                    Text("Todavía no hay nada registrado.", Modifier.padding(16.dp))
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(history) { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    }
-                }
-            }
-        }
-    }
 }
