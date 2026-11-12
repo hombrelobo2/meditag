@@ -86,6 +86,9 @@
   .phone .notif .sm{color:#667}
   .phone .sw{display:inline-block;width:8mm;height:4.2mm;border-radius:3mm;background:#7ee08a;position:relative;flex:none}
   .phone .sw::after{content:"";position:absolute;right:.6mm;top:.6mm;width:3mm;height:3mm;border-radius:50%;background:#103a16}
+  .phone .crow{display:flex;justify-content:space-between;align-items:center;background:#2a302c;border-radius:2mm;padding:2mm 2.5mm;margin-bottom:1.5mm;font-size:7.6pt}
+  .phone .crow b{font-size:7pt;white-space:nowrap;margin-left:2mm}
+  .phone .okc{color:#7ee08a} .phone .grey{color:#9aa59d} .phone .duec{color:#ffb74d}
   .cap{font-size:8.5pt;color:var(--muted);text-align:center;margin-top:2mm}
 
   /* --- Portada --- */
@@ -140,17 +143,18 @@
     </div>
   </div>
 
-  <div style="margin-top:5mm;display:grid;grid-template-columns:1fr 1fr;gap:1.2mm 8mm;font-size:10pt">
+  <div style="margin-top:4mm;display:grid;grid-template-columns:1fr 1fr;gap:1mm 8mm;font-size:9.5pt">
     <div style="grid-column:1/-1;font-weight:700;font-size:11pt;margin-bottom:1mm">En esta guía</div>
-    <div>1 · Antes de empezar ……… 2</div><div>10 · Cuando suena la alarma ……… 9</div>
-    <div>2 · Instalar la app ……… 3</div><div>11 · Si no estabas cerca ……… 9</div>
-    <div>3 · La primera vez: permisos ……… 4</div><div>12 · Ajustes de la alarma ……… 10</div>
-    <div>4 · Añadir un elemento ……… 5</div><div>13 · Copia de seguridad y automática ……… 10</div>
-    <div>5 · Tipos de elemento ……… 6</div><div>14 · Mediciones ……… 11</div>
-    <div>6 · La pauta: qué días toca ……… 6</div><div>15 · Informes para el médico ……… 12</div>
-    <div>7 · Varias tomas al día ……… 7</div><div>16 · Actualizaciones ……… 13</div>
-    <div>8 · Fijar arriba y vista compacta ……… 7</div><div>17 · Si algo no funciona ……… 14</div>
-    <div>9 · El día a día ……… 8</div><div></div>
+    <div>1 · Antes de empezar ……… 2</div><div>11 · Cuando suena la alarma ……… 9</div>
+    <div>2 · Instalar la app ……… 3</div><div>12 · Si no estabas cerca ……… 9</div>
+    <div>3 · La primera vez: permisos ……… 4</div><div>13 · Ajustes de la alarma ……… 10</div>
+    <div>4 · Añadir un elemento ……… 5</div><div>14 · Copia de seguridad ……… 10</div>
+    <div>5 · Tipos de elemento ……… 6</div><div>15 · Copia automática (Drive) ……… 11</div>
+    <div>6 · La pauta: qué días toca ……… 6</div><div>16 · Mediciones ……… 12</div>
+    <div>7 · Varias tomas al día ……… 7</div><div>17 · Informes para el médico ……… 13</div>
+    <div>8 · Fijar arriba (📌) ……… 7</div><div>18 · Actualizaciones ……… 14</div>
+    <div>9 · El día a día ……… 8</div><div>19 · Si algo no funciona ……… 15</div>
+    <div>10 · Vista compacta ……… 8</div><div></div>
   </div>
 
   <div class="foot"><span>MediTag es gratuita, sin anuncios y de código abierto (licencia GPL v3).</span><span>Guía para la versión 1.11 · noviembre 2026</span></div>
@@ -315,7 +319,7 @@
     <tr><th style="width:36mm">Tipo</th><th>Para qué</th><th style="width:52mm">Al acercar la pegatina…</th></tr>
     <tr><td><b>💊 Medicamento</b></td><td>Pastillas, jarabes, inhaladores… La alarma dice «¡TOMA TU MEDICACIÓN!».</td><td>Se apunta la toma.</td></tr>
     <tr><td><b>🌿 Complemento</b></td><td>Vitaminas, magnesio, omega 3… Funciona igual, pero sale aparte en los informes.</td><td>Se apunta la toma.</td></tr>
-    <tr><td><b>🩺 Medición</b></td><td>Tensión, saturación, glucemia, peso o temperatura (página 11).</td><td>Se abre un formulario para escribir los números.</td></tr>
+    <tr><td><b>🩺 Medición</b></td><td>Tensión, saturación, glucemia, peso o temperatura (página 12).</td><td>Se abre un formulario para escribir los números.</td></tr>
     <tr><td><b>✅ Hábito</b></td><td>Lo que se te olvide: lavarte los dientes, beber agua, estirar… La alarma dice «¡NO LO OLVIDES!».</td><td>Se apunta como hecho.</td></tr>
   </table>
 
@@ -392,7 +396,7 @@
     </div>
   </div>
 
-  <h2 style="margin-top:7mm"><span class="n">8</span>Fijar arriba (📌) y vista compacta</h2>
+  <h2 style="margin-top:7mm"><span class="n">8</span>Fijar elementos arriba (📌)</h2>
   <div class="cols">
     <div>
       <p>Si tienes muchos elementos, puedes <b>fijar</b> los más importantes para que salgan <b>siempre arriba</b> de la lista:</p>
@@ -401,7 +405,6 @@
         <li>Para quitarlo, vuelve a tocarla.</li>
         <li>Los fijados se ordenan entre ellos por hora; el resto va debajo.</li>
       </ul>
-      <p><b>¿Muchos elementos?</b> Toca <span class="ui">☰ Compactar</span> arriba: cada uno ocupa <b>una línea</b> con su estado de hoy (✔ 08:42, ¡Toca ahora!, a las 21:00…). Toca una línea para verla completa, y <span class="ui">▤ Ampliar</span> para volver.</p>
     </div>
     <div>
       <div class="phone"><div class="bar"><span>12:05</span><span>▮▮▮ ◔</span></div>
@@ -424,12 +427,11 @@
         <li>Al empezar la franja, el móvil te avisa con una <b>notificación</b>: «Hora de tomar…», «Hora de medir…» o «Hora de…».</li>
         <li>Tómatelo, mídete o hazlo.</li>
         <li><b>Desbloquea el móvil</b> y acerca la pegatina a la parte de atrás. No hace falta abrir la app.</li>
-        <li>Verás <b>«✔ Toma registrada»</b> (en las mediciones, se abre el formulario: página 11). ¡Listo! Esa toma ya no hará sonar la alarma.</li>
+        <li>Verás <b>«✔ Toma registrada»</b> (en las mediciones, se abre el formulario: página 12). ¡Listo! Esa toma ya no hará sonar la alarma.</li>
       </ol>
       <div class="box tip"><span class="t">Trucos</span>
         <ul class="dots">
           <li>Puedes registrarla desde <b>30 minutos antes</b> de que empiece la franja.</li>
-          <li>La mayoría de móviles solo leen pegatinas con la pantalla <b>encendida y desbloqueada</b>.</li>
           <li>Cada tarjeta muestra el estado de cada toma: <b>Pendiente</b>, <b>¡Toca ahora!</b>, <b>✔ Tomada hoy a las…</b> o <b>✖ No realizada</b>.</li>
           <li>Si un día no toca, al acercar la pegatina te dirá «Hoy no toca» y la próxima fecha.</li>
           <li><span class="ui">Cancelar toma</span> en la tarjeta salta solo la toma actual (por ejemplo, si el médico te la ha quitado hoy). Queda en el historial.</li>
@@ -452,13 +454,40 @@
       <div class="cap">Una tarjeta con tres tomas: cada una con su estado.</div>
     </div>
   </div>
+
+  <h2 style="margin-top:6mm"><span class="n">10</span>Vista compacta: muchos elementos de un vistazo</h2>
+  <div class="cols">
+    <div>
+      <p>Si tienes muchos elementos, la lista se hace muy larga. Con la <b>vista compacta</b> cada uno ocupa <b>una sola línea</b>:</p>
+      <ol class="steps">
+        <li>Toca <span class="ui">☰ Compactar</span>, arriba a la derecha.</li>
+        <li>Cada línea muestra el <b>icono</b>, el <b>nombre</b>, la 📌 si está fijado y <b>cómo va hoy</b>: <i>✔ 07:55</i> (hecho a esa hora), <i>✔ 1/3</i> (tomas hechas de las del día), <i>¡Toca ahora!</i>, <i>a las 21:00</i>, <i>Próx. sáb 14 nov</i>, <i>✖ No realizada</i>…</li>
+        <li><b>Toca una línea</b> para desplegar su tarjeta completa (con <span class="ui">Editar</span>, <span class="ui">Cancelar toma</span>, el interruptor…). <span class="ui">▲ Plegar</span> la vuelve a recoger.</li>
+        <li><span class="ui">▤ Ampliar</span> vuelve a la vista de siempre. La app <b>recuerda</b> la vista que elegiste.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>20:30</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="min-height:0">
+          <div class="ttl" style="font-size:9pt">MediTag <span>▤ Ampliar &nbsp;🔔 Alarma</span></div>
+          <div class="crow"><span>💊 Concerta 36mg 📌</span><b class="okc">✔ 07:55</b></div>
+          <div class="crow"><span>🩺 Tensión 📌</span><b class="grey">Próx. sáb 14 nov</b></div>
+          <div class="crow"><span>✅ Lavar dientes</span><b class="okc">✔ 1/3 · a las 14:30</b></div>
+          <div class="crow"><span>🌿 Creatina</span><b class="okc">✔ 07:54</b></div>
+          <div class="crow"><span>🌿 Magnesio Malato</span><b class="duec">¡Toca ahora!</b></div>
+          <div class="crow"><span>💊 Concerta noches</span><b class="grey">a las 21:00</b></div>
+        </div>
+      </div>
+      <div class="cap">Vista compacta: una línea por elemento.</div>
+    </div>
+  </div>
   <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>8</span></div>
 </section>
 
 
 <!-- ============ ALARMA ============ -->
 <section class="page">
-  <h2><span class="n">10</span>Cuando suena la alarma</h2>
+  <h2><span class="n">11</span>Cuando suena la alarma</h2>
   <div class="cols">
     <div>
       <p>Si llega la hora límite y no has acercado la pegatina (o, en una medición, no has guardado los valores), el móvil <b>pita muy fuerte, vibra</b> y la pantalla <b>parpadea en rojo</b>. Suena aunque el móvil esté en silencio. El botón de atrás no la apaga: está hecho así a propósito.</p>
@@ -484,7 +513,7 @@
     </div>
   </div>
 
-  <h2 style="margin-top:7mm"><span class="n">11</span>Si no estabas cerca del móvil</h2>
+  <h2 style="margin-top:7mm"><span class="n">12</span>Si no estabas cerca del móvil</h2>
   <div class="cols">
     <div>
       <p>Si nadie para la alarma, se apaga sola pasado un rato (30 minutos, si no lo cambias) y <b>vuelve a sonar</b> más tarde, dos veces más. Si aun así no hay respuesta, la toma queda como <b>«No tomada»</b> y aparece una <b>pantalla de aviso</b>: lo primero que verás al coger el móvil.</p>
@@ -510,7 +539,7 @@
 
 <!-- ============ AJUSTES, COPIA, ACTUALIZAR ============ -->
 <section class="page">
-  <h2><span class="n">12</span>Ajustes de la alarma</h2>
+  <h2><span class="n">13</span>Ajustes de la alarma</h2>
   <p>Toca <span class="ui">🔔 Alarma</span>, arriba a la derecha. Cuando termines, toca <span class="ui">Guardar</span>.</p>
   <table>
     <tr><th style="width:44mm">Ajuste</th><th>Qué hace</th></tr>
@@ -521,28 +550,72 @@
     <tr><td><b>🔔 Probar alarma</b></td><td>Hace sonar la alarma <b>para que la oigas</b>, sin tocar ninguna toma. Se para con <span class="ui">Detener prueba</span> o acercando cualquier pegatina. Úsalo el primer día para comprobar que todo va bien.</td></tr>
   </table>
 
-  <h2 style="margin-top:8mm"><span class="n">13</span>Copia de seguridad y cambio de móvil</h2>
-  <p>Abajo del todo, en la pantalla principal, toca <span class="ui">Copia de seguridad</span>:</p>
+  <h2 style="margin-top:8mm"><span class="n">14</span>Copia de seguridad y cambio de móvil</h2>
+  <p>Abajo del todo, en la pantalla principal, toca <span class="ui">Copia de seguridad</span>. Para hacerla a mano:</p>
   <ul class="dots">
     <li><span class="ui">Exportar a archivo…</span> guarda tus elementos, el historial y las mediciones en un archivo. Guárdalo en Drive o mándatelo por correo.</li>
     <li><span class="ui">Importar desde archivo…</span> los recupera, por ejemplo en un móvil nuevo. <b>Sustituye</b> lo que haya en la app.</li>
   </ul>
-  <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos.</p>
-  <h3>Copia automática (por ejemplo, en Google Drive)</h3>
-  <ol class="steps">
-    <li>En <span class="ui">Copia de seguridad</span>, activa <b>Copia automática</b>.</li>
-    <li>Toca <span class="ui">Elegir…</span> y elige una carpeta. Si tienes la app de <b>Google Drive</b>, aparece en el menú del selector (☰): entra en tu Drive y elige o crea una carpeta, por ejemplo «MediTag».</li>
-    <li>Elige <b>cada día</b> o <b>cada semana</b>, si quieres también el <b>Excel para el médico</b>, y cuántas copias se conservan (las más antiguas se borran solas).</li>
-    <li>Toca <span class="ui">Hacer una copia ahora</span> para comprobarlo: en la carpeta aparecerá un archivo <b>meditag-copia-…json</b>.</li>
-  </ol>
-  <p style="font-size:9.5pt;color:var(--muted)">MediTag no inicia sesión en Google: solo escribe en la carpeta y Drive la sube. Viene desactivada porque son datos de salud: actívala solo si quieres.</p>
-
+  <p>Las pegatinas siguen sirviendo en el móvil nuevo. Los ajustes de la alarma (sonido, minutos…) hay que volver a ponerlos. Para que se haga <b>sola</b>, mira la página siguiente.</p>
   <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>10</span></div>
+</section>
+
+<!-- ============ COPIA AUTOMÁTICA ============ -->
+<section class="page">
+  <h2><span class="n">15</span>Copia automática en Google Drive</h2>
+  <p class="lead">MediTag puede guardar la copia de seguridad <b>sola</b>, cada día o cada semana, en una carpeta de tu <b>Google Drive</b> (o de OneDrive, Dropbox o del propio móvil). Así, si pierdes o cambias el móvil, no pierdes nada.</p>
+  <div class="cols">
+    <div>
+      <h3 style="margin-top:0">Activarla (una sola vez)</h3>
+      <ol class="steps">
+        <li>Toca <span class="ui">Copia de seguridad</span> y activa el interruptor <b>Copia automática</b>.</li>
+        <li>Toca <span class="ui">Elegir…</span>. Se abre el selector de archivos de Android.</li>
+        <li>Toca el menú <b>☰</b> (arriba a la izquierda) y elige <b>Drive</b>. Entra en <b>Mi unidad</b> y abre o crea una carpeta, por ejemplo «MediTag». <span style="color:var(--muted)">(Necesitas tener instalada la app de Google Drive.)</span></li>
+        <li>Toca <span class="ui">Usar esta carpeta</span> y luego <span class="ui">Permitir</span>.</li>
+        <li>Elige <b>Cada día</b> o <b>Cada semana</b>.</li>
+        <li>Si quieres, marca <b>Incluir también el Excel para el médico</b>: así en la carpeta tendrás siempre el seguimiento actualizado.</li>
+        <li>En <b>Copias que se conservan</b> deja 10 (o el número que quieras). Las más antiguas se borran solas.</li>
+      </ol>
+      <h3>Comprobar que funciona</h3>
+      <p>Toca <span class="ui">Hacer una copia ahora</span>. En unos segundos verás <b>«Última copia: … · ✔ Copia guardada»</b>, y en tu carpeta de Drive aparecerá un archivo como <b>meditag-copia-2026-11-12_2030.json</b> (y <b>meditag-seguimiento-….xlsx</b> si marcaste el Excel).</p>
+    </div>
+    <div>
+      <div class="phone"><div class="bar"><span>20:30</span><span>▮▮▮ ◔</span></div>
+        <div class="scr" style="background:#1d2420;min-height:0">
+          <div style="background:#2a302c;border-radius:3mm;padding:3mm">
+            <b style="font-size:9pt">Copia de seguridad</b>
+            <div class="sm" style="margin:1mm 0 2mm">Exportar a archivo… · Importar desde archivo…</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5mm"><b class="okc">Copia automática</b><span class="sw"></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5mm"><span>Carpeta: MediTag</span><span class="okc">Cambiar…</span></div>
+            <div style="margin-bottom:1.5mm"><span class="btn" style="background:#2e4a33">✓ Cada día</span> <span class="btn off">Cada semana</span></div>
+            <div style="margin-bottom:1.5mm">☑ Incluir también el Excel para el médico</div>
+            <div class="fld" style="margin-bottom:1mm"><span class="sm">Copias que se conservan</span><br>10</div>
+            <div class="sm" style="margin-bottom:1.5mm">Última copia: 12/11/2026 20:30 · ✔ Copia y Excel guardados</div>
+            <span class="btn">Hacer una copia ahora</span>
+          </div>
+        </div>
+      </div>
+      <div class="cap">Ajustes de la copia automática.</div>
+    </div>
+  </div>
+  <div class="cols2" style="margin-top:3mm">
+    <div class="box tip" style="margin:0"><span class="t">Recuperar los datos (móvil nuevo o reinstalación)</span>
+      <p>Instala MediTag, toca <span class="ui">Copia de seguridad</span> → <span class="ui">Importar desde archivo…</span>, entra en Drive → carpeta «MediTag» y elige la copia <b>más reciente</b> (la de fecha más alta). Después, vuelve a activar la copia automática y a elegir la carpeta.</p>
+    </div>
+    <div class="box warn" style="margin:0"><span class="t">Bueno saber</span>
+      <ul class="dots" style="margin:0">
+        <li>Viene <b>desactivada</b>: son datos de salud y solo se guardan en tu Drive si tú lo decides.</li>
+        <li>MediTag <b>no inicia sesión</b> en Google: escribe en la carpeta y la app de Drive la sube cuando hay internet.</li>
+        <li>Si sale <b>«✖ No se puede escribir en la carpeta»</b>, toca <span class="ui">Cambiar…</span> y elígela de nuevo.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>11</span></div>
 </section>
 
 <!-- ============ MEDICIONES ============ -->
 <section class="page">
-  <h2><span class="n">14</span>Mediciones: tensión, glucemia, peso…</h2>
+  <h2><span class="n">16</span>Mediciones: tensión, glucemia, peso…</h2>
   <div class="cols">
     <div>
       <p>Con el tipo <b>🩺 Medición</b>, MediTag te recuerda medirte y <b>guarda los valores</b> para el médico. Pega la pegatina en el aparato (tensiómetro, glucómetro, báscula…).</p>
@@ -588,12 +661,12 @@
   <div class="box alert"><span class="t">La tensión, como la marca el aparato: 120 y 80, no 12 y 8</span>
     <p>Aunque se diga «tengo 12 y 8», el tensiómetro marca <b>120</b> y <b>80</b> (mmHg). Escribe esos números. Si escribes un valor muy raro, la app te pregunta si está bien escrito, pero <b>no te dice si tu tensión o tu azúcar están bien o mal</b>: eso lo valora tu médico.</p>
   </div>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>11</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>12</span></div>
 </section>
 
 <!-- ============ INFORMES ============ -->
 <section class="page">
-  <h2><span class="n">15</span>Informes para el médico</h2>
+  <h2><span class="n">17</span>Informes para el médico</h2>
   <div class="cols">
     <div>
       <p>MediTag guarda lo que haces (tomas, cancelaciones, alarmas sin respuesta…) <b>durante un año</b>, y las mediciones <b>siempre</b>. Con eso crea un informe para llevar a la consulta o enviar por correo.</p>
@@ -638,12 +711,12 @@
       </ul>
     </div>
   </div>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>12</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>13</span></div>
 </section>
 
 <!-- ============ ACTUALIZACIONES ============ -->
 <section class="page">
-  <h2><span class="n">16</span>Actualizaciones y «Acerca de»</h2>
+  <h2><span class="n">18</span>Actualizaciones y «Acerca de»</h2>
   <div class="cols">
     <div>
       <h3 style="margin-top:0">Aviso automático cada semana</h3>
@@ -679,12 +752,12 @@
       <div class="cap">Aviso de versión nueva y «Acerca de».</div>
     </div>
   </div>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>13</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>14</span></div>
 </section>
 
 <!-- ============ PROBLEMAS ============ -->
 <section class="page">
-  <h2><span class="n">17</span>Si algo no funciona</h2>
+  <h2><span class="n">19</span>Si algo no funciona</h2>
   <table>
     <tr><th style="width:56mm">Problema</th><th>Qué hacer</th></tr>
     <tr><td><b>No lee la pegatina</b></td><td>Comprueba que el <b>NFC está activado</b> y el móvil <b>desbloqueado</b>. Mueve la pegatina despacio por toda la espalda del móvil. Si tienes una funda gruesa o con metal o imanes, quítala.</td></tr>
@@ -710,7 +783,7 @@
   </div>
 
   <p style="margin-top:7mm;font-size:9pt;color:var(--muted)">MediTag es software libre y gratuito (licencia GNU GPL v3). Código fuente, novedades y avisos de errores en <span class="url">github.com/hombrelobo2/meditag</span>. Esta guía se puede copiar y repartir libremente.</p>
-  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>14</span></div>
+  <div class="foot"><span>MediTag · Guía de instalación y uso</span><span>15</span></div>
 </section>
 
 </body>
