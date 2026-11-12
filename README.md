@@ -68,9 +68,13 @@ todos; en Xiaomi/Huawei/Samsung conviene además permitir el *inicio automático
 | `Editor.kt` | Editor de medicamento: pauta, calendario mensual, horario; diálogo de sonido |
 
 ## Instalar en el móvil sin Android Studio
-Cada subida a `main` compila el APK automáticamente (pestaña **Actions**) y lo publica en
-**Releases → "MediTag (última compilación)"**. Ábrelo desde el navegador del móvil,
-descarga `MediTag.apk` y permite "instalar apps de origen desconocido" cuando lo pida.
+Cada subida a `main` compila el APK firmado automáticamente (pestaña **Actions**) y lo publica en **Releases**:
+
+- **`vX.Y.Z`**: una publicación por versión con `MediTag-vX.Y.Z.apk` (historial de versiones; la más reciente aparece como *Latest*).
+- **`ultima`**: enlace fijo a la última versión con `MediTag.apk` y `version.json`. Lo usan el código QR de la guía y el botón *Buscar actualizaciones* de la app.
+
+Ábrelo desde el navegador del móvil, descarga el APK y permite "instalar apps de origen desconocido" cuando lo pida.
+La versión se define en `app/build.gradle.kts` (`versionName` / `versionCode`).
 
 ## Firma del APK
 Las versiones publicadas se firman en GitHub Actions con una clave privada guardada en los

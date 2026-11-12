@@ -1,3 +1,9 @@
+# Compila el APK firmado en cada cambio y lo publica en "Releases".
+# - Cada versión tiene su propia publicación: vX.Y.Z con MediTag-vX.Y.Z.apk
+# - La publicación "ultima" es un enlace fijo (lo usan el QR de la guía y el botón
+#   "Buscar actualizaciones" de la app) con MediTag.apk y version.json
+# La versión se define en app/build.gradle.kts (versionName / versionCode).
+
 name: Compilar APK
 
 on:
@@ -26,6 +32,15 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Leer la versión
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          VCODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "VCODE=$VCODE" >> "$GITHUB_ENV"
+          echo "APK=MediTag-v$VERSION.apk" >> "$GITHUB_ENV"
+          echo "Versión: $VERSION ($VCODE)"
+
       - name: Compilar APK firmado
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -42,23 +57,37 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
           rm -f "$SIGNING_KEYSTORE_FILE"
-          cp app/build/outputs/apk/release/app-release.apk MediTag.apk
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          cp "$APK" MediTag.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MediTag-apk
-          path: MediTag.apk
+          name: MediTag-v${{ env.VERSION }}
+          path: ${{ env.APK }}
 
-      - name: Publicar en Releases (última versión)
+      - name: Publicar la versión
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VNAME=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
-          VCODE=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          TAG="v$VERSION"
+          NOTES="MediTag $VERSION (commit ${GITHUB_SHA::7}). Descarga $APK e instálalo encima de la versión anterior."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Misma versión recompilada: se reemplaza el APK
+            gh release upload "$TAG" "$APK" --clobber
+            gh release edit "$TAG" --notes "$NOTES"
+          else
+            gh release create "$TAG" "$APK" --title "MediTag $VERSION" --notes "$NOTES" --latest
+          fi
+
+      - name: Actualizar el enlace fijo (QR de la guía y Buscar actualizaciones)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           # Lo consulta la app en "Acerca de → Buscar actualizaciones"
-          printf '{"versionName":"%s","versionCode":%s}\n' "$VNAME" "$VCODE" > version.json
+          printf '{"versionName":"%s","versionCode":%s}\n' "$VERSION" "$VCODE" > version.json
           cat version.json
           gh release delete ultima --yes --cleanup-tag || true
           gh release create ultima MediTag.apk version.json \
-            --title "MediTag $VNAME" \
-            --notes "APK firmado, compilado desde ${GITHUB_SHA::7}. Descárgalo en el móvil e instálalo."
+            --title "Enlace fijo a la última versión ($VERSION)" \
+            --notes "Copia de la versión $VERSION con nombre fijo, para el código QR de la guía y el botón Buscar actualizaciones. Para ver el historial de versiones, mira las publicaciones vX.Y.Z." \
+            --latest=false
