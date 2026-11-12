@@ -27,11 +27,13 @@ etiqueta, no hace falta grabar nada en ella.
 - **Cancelar toma**: desde la lista ("Cancelar toma") o desde la propia alarma, con confirmación. Queda en el historial.
 - Si el **NFC está apagado** cuando suena la alarma o sale el aviso de toma no realizada, la pantalla lo indica con un botón **Activar NFC**.
 - **Desactivar un medicamento** con su interruptor pide confirmación; si no se responde en 5 s, sigue activo.
-- **Historial** de tomas, cancelaciones y cambios del último año (las mediciones se guardan siempre), en una pantalla aparte (botón *Historial*).
-- **Exportar para el médico**: Excel (.xlsx) con una hoja por tipo (Medicación, Complementos, Hábitos, Tensión, Saturación, Glucemia, Peso, Temperatura), eligiendo periodo (30 días, 3 meses, 12 meses o todo) y qué incluir.
+- **📊 Informes**: pantalla con el historial del último año (las mediciones se guardan siempre) y dos botones para crear informes para el médico, eligiendo periodo y contenido:
+  - **Excel** (.xlsx) con una hoja por tipo (Medicación, Complementos, Hábitos, Tensión, Saturación, Glucemia, Peso, Temperatura).
+  - **PDF** con resumen de cumplimiento (hechas, con retraso, canceladas, no realizadas, %), incidencias y, para cada medición, resumen (media, mínimo, máximo), gráfica de evolución y tabla.
+- **📌 Anclar** elementos para que salgan siempre arriba de la lista.
 - **Almacenamiento**: base de datos SQLite local para historial y mediciones (el historial de versiones anteriores se migra solo).
 - **Copia de seguridad**: exportar e importar a un archivo JSON los elementos (pauta, pegatina, estado), el historial y las mediciones. Se pueden importar copias de versiones anteriores.
-- **Acerca de**: versión de la app, enlace a este repositorio y **Buscar actualizaciones** (consulta `version.json` de la última release; es la única conexión a internet que hace la app, y solo al pulsar el botón).
+- **Acerca de**: versión, resumen de funciones, enlace a este repositorio y **Buscar actualizaciones**. Además, **una vez por semana** (con internet, desactivable en Acerca de) la app consulta `version.json` y avisa con una notificación si hay versión nueva. Son las únicas conexiones a internet que hace la app y no envían ningún dato.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
 
