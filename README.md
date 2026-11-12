@@ -43,7 +43,7 @@ etiqueta, no hace falta grabar nada en ella.
 ## Guía para usuarios
 📄 **[Guía de instalación y uso (PDF)](docs/MediTag-Guia-de-uso.pdf)**: explicada paso a paso para personas
 poco habituadas al móvil, con código QR de descarga. Se puede imprimir y repartir libremente.
-La fuente está en `docs/guia/` (HTML; el PDF se genera imprimiendo el HTML con Chromium).
+La fuente está en `docs/guia/`: `portada.html` (portada para imprimir) y `guia.html` (la guía). El PDF oficial es la portada seguida de la guía, cada una impresa con Chromium y unidas en un solo archivo.
 
 ## Compilar
 1. Abre la carpeta `MediTag` en Android Studio (Ladybug o posterior) y deja que sincronice Gradle.
