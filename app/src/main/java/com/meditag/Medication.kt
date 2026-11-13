@@ -447,6 +447,16 @@ object MedRepo {
         refreshHistory(ctx)
     }
 
+    /** Quita del historial la cancelación de hoy de la toma [slot] (al deshacerla). */
+    @Synchronized
+    fun removeCancellation(ctx: Context, med: Medication, slot: Int) {
+        init(ctx)
+        val label = if (med.multi && slot in med.slots.indices) med.slots[slot].label else ""
+        val since = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        Store.deleteLastEvent(ctx, med.id, label, listOf("Cancelada", "Toma cancelada"), since)
+        refreshHistory(ctx)
+    }
+
     /** Guarda una medición. */
     fun addReading(ctx: Context, r: Reading) {
         init(ctx)

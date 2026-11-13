@@ -496,6 +496,8 @@ fun MedCard(
         else -> null
     }
     val open = if (general == null) med.currentOpenSlot(now) else null
+    // Toma cancelada hoy (la más reciente): se puede deshacer
+    val skipped = if (general == null) med.slots.indices.lastOrNull { med.slotStatus(it, now) == DoseStatus.SKIPPED } else null
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val readingsVersion by MedRepo.readingsVersion.collectAsState()
     val last = if (med.isMeasurement) remember(med.id, readingsVersion) { Store.lastReading(ctx, med.id) } else null
@@ -546,6 +548,14 @@ fun MedCard(
             ) {
                 if (med.isMeasurement && med.enabled) {
                     Button(onClick = { MeasureActivity.openManual(ctx, med) }) { OneLine("Añadir medición") }
+                }
+                if (skipped != null) {
+                    OutlinedButton(onClick = {
+                        DoseManager.uncancel(ctx, med, skipped)
+                        android.widget.Toast.makeText(ctx, "Cancelación deshecha: ya puedes escanear la pegatina", android.widget.Toast.LENGTH_LONG).show()
+                    }) {
+                        OneLine(if (med.multi) "↩ Deshacer cancelación de ${fmt(med.slots[skipped].start)}" else "↩ Deshacer cancelación")
+                    }
                 }
                 if (open != null) {
                     OutlinedButton(onClick = { onSkip(open) }) {

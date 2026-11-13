@@ -170,6 +170,18 @@ object Store {
             }
         }
 
+    /** Borra el último evento [names] de un elemento y toma desde [since]. Devuelve si borró alguno. */
+    fun deleteLastEvent(ctx: Context, itemId: Int, slot: String, names: List<String>, since: Long): Boolean {
+        val db = db(ctx)
+        val marks = names.joinToString(",") { "?" }
+        val args = arrayOf(itemId.toString(), slot, since.toString()) + names.toTypedArray()
+        val id = db.rawQuery(
+            "SELECT id FROM events WHERE item_id = ? AND slot = ? AND ts >= ? AND event IN ($marks) ORDER BY ts DESC, id DESC LIMIT 1",
+            args
+        ).use { c -> if (c.moveToFirst()) c.getLong(0) else null } ?: return false
+        return db.delete("events", "id = ?", arrayOf(id.toString())) > 0
+    }
+
     fun pruneEvents(ctx: Context, before: Long) {
         db(ctx).delete("events", "ts < ?", arrayOf(before.toString()))
     }

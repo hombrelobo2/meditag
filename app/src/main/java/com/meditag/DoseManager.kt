@@ -152,6 +152,21 @@ object DoseManager {
         finishDose(ctx, updated, i)
     }
 
+    /**
+     * Deshace la cancelación de hoy de la toma [i]: se borra del historial y la toma vuelve a
+     * estar pendiente para poder registrarla escaneando. Si su franja ya pasó, queda como
+     * "no realizada" (al escanear cuenta como "con retraso") y la alarma no suena de golpe.
+     */
+    fun uncancel(ctx: Context, med: Medication, i: Int) {
+        val fresh = MedRepo.get(ctx, med.id) ?: return
+        if (i !in fresh.slots.indices || !fresh.state(i).skipped) return
+        val past = !LocalDateTime.now().toLocalTime().isBefore(fresh.slots[i].endTime)
+        val updated = fresh.withState(i) { it.copy(skipped = false, missed = past, nextRepeatAt = 0L) }
+        MedRepo.upsert(ctx, updated)
+        MedRepo.removeCancellation(ctx, fresh, i)
+        AlarmScheduler.schedule(ctx, updated)
+    }
+
     /** Desde la pantalla de alarma: se cancela esa toma (si sigue pendiente) y se para. */
     fun cancelFromAlarm(ctx: Context, med: Medication, i: Int) {
         when (med.slotStatus(i)) {
