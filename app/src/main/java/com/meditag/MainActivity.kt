@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 data class Issue(val text: String, val action: String, val onClick: () -> Unit)
@@ -139,6 +140,25 @@ class MainActivity : ComponentActivity() {
         }
 
     fun exportBackup() = exportLauncher.launch(Backup.suggestedName())
+
+    /** Versión nueva disponible (se muestra un aviso arriba en la pantalla principal). */
+    var newVersion: UpdateCheck.Available? by mutableStateOf<UpdateCheck.Available?>(null)
+        private set
+
+    /**
+     * Comprueba solo, sin pulsar nada, al abrir la app (como mucho una vez al día y si está
+     * activada la comprobación en Acerca de). Si hay versión nueva: notificación + aviso.
+     */
+    private fun checkUpdatesOnOpen() {
+        newVersion = AutoUpdate.pendingUpdate(this)
+        if (!AutoUpdate.dueOnOpen(this)) return
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+            val r = UpdateCheck.check()
+            AutoUpdate.recordCheck(this@MainActivity, r)
+            if (r is UpdateCheck.Available) AutoUpdate.notifyIfNew(this@MainActivity, r.name, r.url)
+            newVersion = AutoUpdate.pendingUpdate(this@MainActivity)
+        }
+    }
 
     /** Nombre de la carpeta de la copia automática (para mostrarla). */
     var backupFolderName: String? by mutableStateOf<String?>(null)
@@ -236,6 +256,7 @@ class MainActivity : ComponentActivity() {
         refreshIssues()
         refreshSound()
         backupFolderName = AutoBackup.folderName(this)
+        checkUpdatesOnOpen()
         nfc?.enableReaderMode(this, { tag -> onTag(Nfc.tagId(tag)) }, Nfc.READER_FLAGS, null)
     }
 
@@ -347,6 +368,21 @@ fun MainScreen(act: MainActivity) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = pad.calculateTopPadding() + 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            act.newVersion?.let { nv ->
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                        Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "🆕 Hay una versión nueva: ${nv.name}", Modifier.weight(1f),
+                                fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Button(onClick = {
+                                runCatching { act.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(nv.url))) }
+                            }) { Text("Descargar") }
+                        }
+                    }
+                }
+            }
             if (ringing.isNotEmpty()) item {
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFC40000))) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

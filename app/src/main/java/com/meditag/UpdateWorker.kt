@@ -45,8 +45,29 @@ object AutoUpdate {
             is UpdateCheck.Available -> "hay versión nueva: ${r.name}"
             is UpdateCheck.Failed -> "no se pudo comprobar (${r.reason})"
         }
-        MedRepo.prefs(ctx).edit().putLong(KEY_LAST, System.currentTimeMillis()).putString(KEY_LAST_RESULT, txt).apply()
+        val e = MedRepo.prefs(ctx).edit().putLong(KEY_LAST, System.currentTimeMillis()).putString(KEY_LAST_RESULT, txt)
+        when (r) {
+            is UpdateCheck.Available -> e.putString(KEY_AVAIL_NAME, r.name).putString(KEY_AVAIL_URL, r.url)
+            is UpdateCheck.UpToDate -> e.remove(KEY_AVAIL_NAME).remove(KEY_AVAIL_URL)
+            is UpdateCheck.Failed -> {}
+        }
+        e.apply()
     }
+
+    private const val KEY_AVAIL_NAME = "update_avail_name"
+    private const val KEY_AVAIL_URL = "update_avail_url"
+
+    /** Versión nueva detectada en la última comprobación (si no es la instalada). */
+    fun pendingUpdate(ctx: Context): UpdateCheck.Available? {
+        val p = MedRepo.prefs(ctx)
+        val name = p.getString(KEY_AVAIL_NAME, null) ?: return null
+        if (name == BuildConfig.VERSION_NAME) return null
+        return UpdateCheck.Available(name, p.getString(KEY_AVAIL_URL, null) ?: versionedApkUrl(name))
+    }
+
+    /** ¿Toca comprobar al abrir la app? (activado y sin comprobar en las últimas 24 h) */
+    fun dueOnOpen(ctx: Context): Boolean =
+        enabled(ctx) && System.currentTimeMillis() - MedRepo.prefs(ctx).getLong(KEY_LAST, 0L) > 24 * 3_600_000L
 
     /** "dd/MM/yyyy HH:mm · al día (1.11.5)" o null si nunca se ha comprobado. */
     fun lastCheckText(ctx: Context): String? {
