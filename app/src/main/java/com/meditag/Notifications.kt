@@ -92,7 +92,7 @@ object Notifications {
     }
 
     /** Aviso fijo de toma sin respuesta (se quita al escanear o cancelar la toma). */
-    fun showMissed(ctx: Context, med: Medication, i: Int, text: String) {
+    fun showMissed(ctx: Context, med: Medication, i: Int, text: String, fullScreen: Boolean = true) {
         if (!canNotify(ctx)) return
         // Pantalla de aviso: con la pantalla apagada se abre ya sobre el bloqueo (sin encenderla),
         // así es lo primero que se ve al coger el móvil.
@@ -104,7 +104,7 @@ object Notifications {
         val n = NotificationCompat.Builder(ctx, CH_REMIND)
             .setSmallIcon(R.drawable.ic_notif)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(pi, true)
+            .apply { if (fullScreen) setFullScreenIntent(pi, true) }
             .setContentTitle("✖ Pendiente: ${med.name}${med.slotSuffix(i)}")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))

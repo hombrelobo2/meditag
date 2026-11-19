@@ -88,7 +88,8 @@ class AlarmService : Service() {
         if (intent == null) {
             // El sistema reinició el servicio: recuperamos las tomas fuera de plazo.
             val overdue = MedRepo.all(this).flatMap { m ->
-                m.slots.indices.filter { m.slotStatus(it) == DoseStatus.OVERDUE && !m.repeatPending(it) }
+                if (!m.usesAlarm) emptyList()
+                else m.slots.indices.filter { m.slotStatus(it) == DoseStatus.OVERDUE && !m.repeatPending(it) }
                     .map { Occ.key(m.id, it) }
             }
             _ringing.update { it + overdue }

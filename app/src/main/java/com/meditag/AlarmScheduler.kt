@@ -48,7 +48,9 @@ object AlarmScheduler {
                 }
             }
             if (startAt.isAfter(now)) setExact(ctx, startAt, pi(ctx, reqRemind(med.id, i), ACTION_REMIND, med.id, i))
-            setAlarmClock(ctx, alarmAt, pi(ctx, reqAlarm(med.id, i), ACTION_ALARM, med.id, i))
+            val alarmPi = pi(ctx, reqAlarm(med.id, i), ACTION_ALARM, med.id, i)
+            // Solo notificación: no hace falta "despertador" (ni su icono); basta un aviso exacto
+            if (med.usesAlarm) setAlarmClock(ctx, alarmAt, alarmPi) else setExact(ctx, alarmAt, alarmPi)
         }
     }
 
@@ -106,7 +108,8 @@ class AlarmReceiver : BroadcastReceiver() {
             intent.action == AlarmScheduler.ACTION_REMIND && (s == DoseStatus.PENDING || s == DoseStatus.DUE) ->
                 Notifications.showReminder(ctx, med, i)
             intent.action == AlarmScheduler.ACTION_ALARM && (s == DoseStatus.OVERDUE || s == DoseStatus.DUE) ->
-                AlarmService.start(ctx, Occ.key(med.id, i))
+                if (med.usesAlarm) AlarmService.start(ctx, Occ.key(med.id, i))
+                else DoseManager.notifyOnlyMissed(ctx, med, i) // sin alarma: solo un aviso
             else -> AlarmScheduler.schedule(ctx, med)
         }
     }

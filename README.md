@@ -5,7 +5,7 @@ al móvil la pegatina NFC pegada al medicamento. Solo se usa el **UID** de la
 etiqueta, no hace falta grabar nada en ella.
 
 ## Funciones
-- **Tipos de elemento**: 💊 medicamento · 🌿 complemento alimenticio · 🩺 medición · ✅ hábito. Cada tipo tiene sus textos de alarma y aviso, y se exporta por separado.
+- **Tipos de elemento**: 💊 medicamento · 🌿 complemento alimenticio · 🩺 medición · ✅ hábito. Cada tipo tiene sus textos de alarma y aviso, y se exporta por separado. Los **hábitos** pueden ser *Alarma y notificación* o *Solo notificación* (sin alarma: al acabar la franja quedan como no realizados y llega un aviso).
 - **Mediciones**: tensión (sistólica/diastólica/pulso), saturación de O₂, glucemia (con momento: ayunas, antes/después de comer), peso y temperatura. Al escanear la pegatina se abre un formulario; la toma cuenta al guardar los valores. También se pueden añadir a mano («Añadir medición»). Hay control de erratas (pide confirmar valores muy raros) pero la app **no interpreta** los valores.
 - **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y una o varias **tomas al día** (franjas desde / hasta, con *+ Añadir toma*; no pueden solaparse).
 - **Varias tomas con una sola pegatina**: al escanear se registra la toma en curso (o la que empieza en 30 min); cada toma tiene su recordatorio, su alarma, su cancelación y su línea de estado.

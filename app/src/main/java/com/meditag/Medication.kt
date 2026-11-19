@@ -126,7 +126,11 @@ data class Medication(
     val kind: Kind = Kind.MEDICATION,
     val measures: Set<Measure> = emptySet(), // solo para Kind.MEASUREMENT
     val pinned: Boolean = false,             // anclado: sale siempre arriba
+    val alarm: Boolean = true,               // false = solo notificación (sin alarma); para hábitos
 ) {
+    /** Suena la alarma al acabar la franja (los hábitos pueden ser "solo notificación"). */
+    val usesAlarm: Boolean get() = alarm || kind != Kind.HABIT
+
     val isMeasurement: Boolean get() = kind == Kind.MEASUREMENT
 
     /** Para ordenar la lista. */
@@ -215,7 +219,7 @@ data class Medication(
             Mode.INTERVAL -> (if (intervalDays == 2) "Días alternos" else "Cada $intervalDays días") + " · $h"
             Mode.DATES -> "Según calendario (${dates.size} ${if (dates.size == 1) "día" else "días"}) · $h"
             Mode.ON_DEMAND -> "A demanda · sin alarma"
-        }
+        } + if (!usesAlarm && mode != Mode.ON_DEMAND) " · solo aviso" else ""
     }
 
     fun toJson(): JSONObject = JSONObject()
@@ -232,6 +236,7 @@ data class Medication(
         .put("kind", kind.name)
         .put("measures", JSONArray(measures.map { it.name }))
         .put("pinned", pinned)
+        .put("alarm", alarm)
 
     companion object {
         fun fromJson(o: JSONObject): Medication {
@@ -285,6 +290,7 @@ data class Medication(
                 count = o.optInt("count", 0),
                 kind = runCatching { Kind.valueOf(o.optString("kind", "MEDICATION")) }.getOrDefault(Kind.MEDICATION),
                 pinned = o.optBoolean("pinned", false),
+                alarm = o.optBoolean("alarm", true),
                 measures = (o.optJSONArray("measures") ?: JSONArray()).let { m ->
                     (0 until m.length()).mapNotNull { runCatching { Measure.valueOf(m.getString(it)) }.getOrNull() }.toSet()
                 },
