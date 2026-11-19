@@ -5,7 +5,7 @@ al móvil la pegatina NFC pegada al medicamento. Solo se usa el **UID** de la
 etiqueta, no hace falta grabar nada en ella.
 
 ## Funciones
-- **Tipos de elemento**: 💊 medicamento · 🌿 complemento alimenticio · 🩺 medición · ✅ hábito. Cada tipo tiene sus textos de alarma y aviso, y se exporta por separado. Los **hábitos** pueden ser *Alarma y notificación* o *Solo notificación* (sin alarma: al acabar la franja quedan como no realizados y llega un aviso).
+- **Tipos de elemento**: 💊 medicamento · 🌿 complemento alimenticio · 🩺 medición · ✅ hábito. Cada tipo tiene sus textos de alarma y aviso, y se exporta por separado. Cada elemento (medicamento, complemento, medición o hábito) puede ser *Alarma y notificación* o *Solo notificación* (sin alarma: al acabar la franja queda como no realizado y llega un aviso).
 - **Mediciones**: tensión (sistólica/diastólica/pulso), saturación de O₂, glucemia (con momento: ayunas, antes/después de comer), peso y temperatura. Al escanear la pegatina se abre un formulario; la toma cuenta al guardar los valores. También se pueden añadir a mano («Añadir medición»). Hay control de erratas (pide confirmar valores muy raros) pero la app **no interpreta** los valores.
 - **Medicamentos**: nombre, pegatina NFC asociada (botón *Escanear*), **pauta** y una o varias **tomas al día** (franjas desde / hasta, con *+ Añadir toma*; no pueden solaparse).
 - **Varias tomas con una sola pegatina**: al escanear se registra la toma en curso (o la que empieza en 30 min); cada toma tiene su recordatorio, su alarma, su cancelación y su línea de estado.
@@ -36,7 +36,7 @@ etiqueta, no hace falta grabar nada en ella.
 - **Almacenamiento**: base de datos SQLite local para historial y mediciones (el historial de versiones anteriores se migra solo).
 - **Copia de seguridad**: exportar e importar a un archivo JSON los elementos (pauta, pegatina, estado), el historial y las mediciones. Se pueden importar copias de versiones anteriores.
 - **Copia automática** (desactivada por defecto): cada día o cada semana guarda la copia (y opcionalmente el Excel) en una carpeta elegida con el selector de Android, por ejemplo de Google Drive; conserva las N últimas. No inicia sesión en ningún servicio. Además, la copia de seguridad estándar de Android (`allowBackup`) está activada.
-- **Acerca de**: versión, resumen de funciones, enlace al **manual de uso (PDF)**, enlace a este repositorio y **Buscar actualizaciones**. Además, **una vez por semana** (con internet, desactivable en Acerca de) la app consulta `version.json` y avisa con una notificación si hay versión nueva. Son las únicas conexiones a internet que hace la app y no envían ningún dato.
+- **Acerca de**: versión, resumen de funciones, enlace al **manual de uso (PDF)**, enlace a este repositorio y **Buscar actualizaciones**. Además, **una vez por semana** (con internet, desactivable en Acerca de) la app consulta `version.json` y avisa con una notificación si hay versión nueva; en Acerca de se ve la fecha y el resultado de la última comprobación. Son las únicas conexiones a internet que hace la app y no envían ningún dato.
 - Se reprograma sola tras reiniciar el móvil o cambiar la hora; si al encender ya está fuera de plazo, suena.
 - **Probar alarma** (en 🔔 Alarma): hace sonar la alarma con los ajustes elegidos sin tocar ninguna toma; se para con «Detener prueba» o con cualquier pegatina (sirve para comprobar el lector NFC).
 

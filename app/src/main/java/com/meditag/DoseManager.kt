@@ -168,7 +168,7 @@ object DoseManager {
     }
 
     /**
-     * Elemento "solo notificación" (hábitos): al acabar la franja sin hacerlo no suena la alarma;
+     * Elemento "solo notificación": al acabar la franja sin hacerlo no suena la alarma;
      * queda como no realizado y llega una notificación normal (sin pantalla completa).
      */
     fun notifyOnlyMissed(ctx: Context, med: Medication, i: Int) {
@@ -177,7 +177,8 @@ object DoseManager {
         val updated = fresh.withState(i) { it.copy(missed = true, nextRepeatAt = 0L) }
         MedRepo.upsert(ctx, updated)
         MedRepo.logItem(ctx, "NO realizada (sin alarma)", fresh, i)
-        Notifications.showMissed(ctx, updated, i, "Se acabó la franja sin hacerlo. Si lo haces ahora, escanea la pegatina.", fullScreen = false)
+        Notifications.showMissed(ctx, updated, i, if (fresh.isMeasurement) "Se acabó la franja sin medirte. Si te mides ahora, acerca la pegatina y guarda los valores."
+            else "Se acabó la franja sin registrarlo. Si lo haces ahora, acerca la pegatina.", fullScreen = false)
         AlarmScheduler.schedule(ctx, updated)
     }
 

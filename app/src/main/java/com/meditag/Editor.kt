@@ -130,7 +130,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
         val med = base.copy(
             name = name.trim(), tagId = tag, slots = sorted,
             kind = kind, measures = if (kind == Kind.MEASUREMENT) measures else emptySet(),
-            alarm = if (kind == Kind.HABIT) alarm else true,
+            alarm = alarm,
             mode = mode, weekdays = weekdays, intervalDays = interval,
             anchorDate = anchor.toString(), dates = newDates,
             activeSince = if (changed) System.currentTimeMillis() else base.activeSince,
@@ -184,15 +184,15 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                             FilterChip(selected = kind == k, onClick = { kind = k }, label = { Text("${k.icon} ${k.label}") })
                         }
                     }
-                    if (kind == Kind.HABIT) {
+                    run {
                         Section("Aviso")
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(selected = alarm, onClick = { alarm = true }, label = { Text("🔔 Alarma y notificación") })
                             FilterChip(selected = !alarm, onClick = { alarm = false }, label = { Text("🔕 Solo notificación") })
                         }
                         Hint(
-                            if (alarm) "Te avisa al empezar la franja y, si al acabar no lo has hecho, suena la alarma hasta que acerques la pegatina."
-                            else "Te avisa con una notificación al empezar la franja. Si al acabar no lo has hecho, no suena nada: queda como «no realizado» y te llega otra notificación."
+                            if (alarm) "Te avisa al empezar la franja y, si al acabar no lo has registrado, suena la alarma hasta que acerques la pegatina."
+                            else "Te avisa con una notificación al empezar la franja. Si al acabar no lo has registrado, no suena nada: queda como «no realizado» y te llega otra notificación."
                         )
                     }
                     if (kind == Kind.MEASUREMENT) {
@@ -336,7 +336,7 @@ fun EditorDialog(initial: Medication?, act: MainActivity, onDismiss: () -> Unit)
                             timeMsg = null
                         }) { Text("+ Añadir toma") }
                         Hint(
-                            if (kind == Kind.HABIT && !alarm) "Solo notificación: no sonará ninguna alarma."
+                            if (!alarm) "Solo notificación: no sonará ninguna alarma."
                             else if (slots.size == 1) "Si a las ${fmt(slots[0].end)} no has escaneado la pegatina, sonará la alarma."
                             else "Con la misma pegatina se registra la toma que esté en curso. Cada una tiene su propia alarma al acabar su franja. Las franjas no pueden solaparse."
                         )

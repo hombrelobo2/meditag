@@ -126,10 +126,10 @@ data class Medication(
     val kind: Kind = Kind.MEDICATION,
     val measures: Set<Measure> = emptySet(), // solo para Kind.MEASUREMENT
     val pinned: Boolean = false,             // anclado: sale siempre arriba
-    val alarm: Boolean = true,               // false = solo notificación (sin alarma); para hábitos
+    val alarm: Boolean = true,               // false = solo notificación (sin alarma)
 ) {
-    /** Suena la alarma al acabar la franja (los hábitos pueden ser "solo notificación"). */
-    val usesAlarm: Boolean get() = alarm || kind != Kind.HABIT
+    /** Suena la alarma al acabar la franja (si no, es "solo notificación"). */
+    val usesAlarm: Boolean get() = alarm
 
     val isMeasurement: Boolean get() = kind == Kind.MEASUREMENT
 

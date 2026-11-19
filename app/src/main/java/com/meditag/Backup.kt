@@ -150,6 +150,7 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
     var checking by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<UpdateCheck.Result?>(null) }
     var auto by remember { mutableStateOf(AutoUpdate.enabled(act)) }
+    var lastCheck by remember { mutableStateOf(AutoUpdate.lastCheckText(act)) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Acerca de MediTag") },
@@ -182,11 +183,20 @@ fun AboutDialog(act: MainActivity, onDismiss: () -> Unit) {
                     Text("Comprobar actualizaciones cada semana", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     androidx.compose.material3.Switch(checked = auto, onCheckedChange = { auto = it; AutoUpdate.setEnabled(act, it) })
                 }
+                Text(
+                    (if (auto) "Si hay versión nueva, te llega una notificación. " else "") +
+                        "Última comprobación: " + (lastCheck ?: "todavía ninguna"),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 OutlinedButton(
                     enabled = !checking,
                     onClick = {
                         checking = true; result = null
-                        scope.launch { result = UpdateCheck.check(); checking = false }
+                        scope.launch {
+                            val r = UpdateCheck.check()
+                            AutoUpdate.recordCheck(act, r); lastCheck = AutoUpdate.lastCheckText(act)
+                            result = r; checking = false
+                        }
                     }
                 ) { Text(if (checking) "Comprobando…" else "Buscar actualizaciones") }
                 when (val r = result) {

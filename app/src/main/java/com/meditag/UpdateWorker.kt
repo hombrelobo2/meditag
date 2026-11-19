@@ -35,6 +35,27 @@ object AutoUpdate {
 
     fun enabled(ctx: Context) = MedRepo.prefs(ctx).getBoolean(KEY_ENABLED, true)
 
+    private const val KEY_LAST = "update_last_check"
+    private const val KEY_LAST_RESULT = "update_last_result"
+
+    /** Apunta cuándo se comprobó por última vez y qué salió (para verlo en Acerca de). */
+    fun recordCheck(ctx: Context, r: UpdateCheck.Result) {
+        val txt = when (r) {
+            is UpdateCheck.UpToDate -> "al día (${r.name})"
+            is UpdateCheck.Available -> "hay versión nueva: ${r.name}"
+            is UpdateCheck.Failed -> "no se pudo comprobar (${r.reason})"
+        }
+        MedRepo.prefs(ctx).edit().putLong(KEY_LAST, System.currentTimeMillis()).putString(KEY_LAST_RESULT, txt).apply()
+    }
+
+    /** "dd/MM/yyyy HH:mm · al día (1.11.5)" o null si nunca se ha comprobado. */
+    fun lastCheckText(ctx: Context): String? {
+        val t = MedRepo.prefs(ctx).getLong(KEY_LAST, 0L).takeIf { it > 0 } ?: return null
+        val d = java.time.Instant.ofEpochMilli(t).atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+        return "$d · " + (MedRepo.prefs(ctx).getString(KEY_LAST_RESULT, null) ?: "")
+    }
+
     fun setEnabled(ctx: Context, on: Boolean) {
         MedRepo.prefs(ctx).edit().putBoolean(KEY_ENABLED, on).apply()
         schedule(ctx)
@@ -86,7 +107,9 @@ object AutoUpdate {
 class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         if (!AutoUpdate.enabled(applicationContext)) return Result.success()
-        return when (val r = UpdateCheck.check()) {
+        val res = UpdateCheck.check()
+        AutoUpdate.recordCheck(applicationContext, res)
+        return when (val r = res) {
             is UpdateCheck.Available -> { AutoUpdate.notifyIfNew(applicationContext, r.name, r.url); Result.success() }
             is UpdateCheck.UpToDate -> Result.success()
             is UpdateCheck.Failed -> Result.retry()
